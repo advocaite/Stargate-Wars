@@ -1,0 +1,3 @@
+[20-Jun-2006 13:14:46] PHP Warning:  main(config.php): failed to open stream: No such file or directory in /home/rb504c/public_html/indexpages/register.php on line 4
+[20-Jun-2006 13:14:46] PHP Warning:  main(): Failed opening 'config.php' for inclusion (include_path='.:/usr/lib/php:/usr/local/lib/php') in /home/rb504c/public_html/indexpages/register.php on line 4
+[20-Jun-2006 13:14:46] PHP Fatal error:  Cannot instantiate non-existent class:  game in /home/rb504c/public_html/indexpages/register.php on line 5
