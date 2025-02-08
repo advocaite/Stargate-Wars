@@ -1,4 +1,4 @@
-<?
+<?php
 include_once("config.php");
 $s = new Game();
 if ($_GET['burst'])

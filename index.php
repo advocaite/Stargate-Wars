@@ -1,4 +1,4 @@
-<?
+<?php
 include_once("config.php");
 $s = new Game();
 if ($_GET['logout']) { User::logOut();} 
@@ -45,7 +45,7 @@ if(!$s->loggedIn || $_GET['logout'])
         <td height="90%"><div id="up2date"></div></td>
       </tr>
     </table>    </td>
-    <td colspan="3" align="center"><h1>Codename: Lantea</h1><h2><div id="rollover"></div></h2><?
+    <td colspan="3" align="center"><h1>Codename: Lantea</h1><h2><div id="rollover"></div></h2><?php
 	if ($_POST['submit']=="Register")
 {
 	$number = $_POST['number'];
@@ -73,7 +73,7 @@ if(!$s->loggedIn || $_GET['logout'])
 </body>
 </html>
 
-<?
+<?php
 }
 else {
 

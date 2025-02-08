@@ -1,4 +1,4 @@
-<?
+<?php
 include_once("../config.php");
 
 $pagegen = new page_gen();
@@ -6,7 +6,7 @@ $pagegen->round_to = 4;
 $pagegen->start();
 
 $s = new Game();
-if (!$s->loggedIn || !$_GET['time']){ header("Location: https://realmbattles.org/SGWnew/index.php?"); }
+if (!$s->loggedIn || !$_GET['time']){ header("Location: index.php?"); }
 if (!$_POST) { $s->updatePower($_SESSION['userid']); }
 $weapons = $s->getWeapons($_SESSION['userid']);
 if($_REQUEST['atype'] == "repair")
@@ -54,7 +54,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td align="center" valign="middle"><a href="javascript:void(0)" onclick="sendData('armory','get','<?= $inv['atk'][$x]['wid'];?>','repair'); return false;"><?= $inv['atk'][$x]['perpoint'];?></a></td>
         <td align="center" valign="middle"><input name="<?= $inv['atk'][$x]['fieldname'];?>" type="text" value="<?= $inv['atk'][$x]['quanity'];?>" size="10" /> for <?= $inv['atk'][$x]['sell'];?> each</td>
       </tr>
-	  <? } ?>
+	  <?php } ?>
 	  <tr><td>&nbsp;</td></tr>
       <tr>
         <td align="left" valign="middle">Defense Weapons</td>
@@ -63,7 +63,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td align="center" valign="middle">Repair</td>
         <td align="center" valign="middle">Scrap /Sell </td>
       </tr>
-      <? for ($x = 0; $x < count($inv['def']); $x++){?>
+      <?php for ($x = 0; $x < count($inv['def']); $x++){?>
 	  <tr>
         <td align="left" valign="middle"><?= $inv['def'][$x]['name'];?></td>
         <td align="center" valign="middle"><?= $inv['def'][$x]['quanity'];?></td>
@@ -88,7 +88,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right">Cost</td>
         <td width="16%" align="right">Quanity</td>
       </tr>
-          <?
+          <?php
 	  for ($x = 0; $x < count($weapons['atk']); $x++)
 	  {
 	  	if($weapons['atk'][$x]['unitcost'] ==0 && !$weapons['atk'][$x]['cashcost'] ==0)
@@ -100,7 +100,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right" valign="top"><?= $weapons['atk'][$x]['cashcost'];?> naquadrea</td>
         <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-        <?
+        <?php
 	  	}elseif ($weapons['atk'][$x]['cashcost'] ==0 && !$weapons['atk'][$x]['unitcost'] ==0 ){
 	    ?>
 	  <tr>
@@ -109,7 +109,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right" valign="top"><?= $weapons['atk'][$x]['unitcost'];?> untrained units</td>
         <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  	<?
+	  	<?php
 		}else if(!$weapons['atk'][$x]['cashcost'] ==0 && (!$weapons['atk'][$x]['unitcost'] ==0)){		
 		?>
 	  <tr>
@@ -119,7 +119,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
           <?= $weapons['atk'][$x]['unitcost'];?> untrained units</td>
         <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  <?
+	  <?php
 	  }
 	 }
 	  ?><tr><td>&nbsp;</td></tr>
@@ -129,7 +129,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right">Cost</td>
         <td width="16%" align="right" valign="bottom">Quanity</td>
       </tr>
-          <?
+          <?php
 	  for ($x = 0; $x < count($weapons['def']); $x++)
 	  {
 	  	if($weapons['def'][$x]['unitcost'] ==0  && !$weapons['def'][$x]['cashcost'] ==0 )
@@ -141,7 +141,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right" valign="top"><?= $weapons['def'][$x]['cashcost'];?> naquadrea</td>
         <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-        <?
+        <?php
 	  	}elseif ($weapons['def'][$x]['cashcost'] ==0 && !$weapons['def'][$x]['unitcost'] ==0  ){
 	    ?>
 	  <tr>
@@ -150,7 +150,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right" valign="top"><?= $weapons['def'][$x]['unitcost'];?> untrained units</td>
         <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  	<?
+	  	<?php
 		}else if(!$weapons['def'][$x]['cashcost'] ==0 && (!$weapons['def'][$x]['unitcost'] ==0)){		
 		?>
 	  <tr>
@@ -160,7 +160,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
           <?= $weapons['def'][$x]['unitcost'];?> untrained units</td>
         <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  <?
+	  <?php
 	  }
 	 }
 	  ?>
@@ -171,7 +171,7 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
     </table
 
 ></table>
-<?
+<?php
 echo "Query Count: ".$s->queryCount."<br>";
 $pagegen->stop();
 print('page generation time: ' . $pagegen->gen());

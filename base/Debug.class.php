@@ -2,18 +2,17 @@
 // Base::Debug.class.php
 class Debug
 {
-	function printMsg($className, $function, $message)
+	function printMsg(string $className, string $function, string $message): void
 	{
 		if(DEBUG)
 		{
-			$sub['{CLASSNAME}'] = $className;
-			$sub['{FUNCTIONNAME}'] = $function;
-			$sub['{MESSAGE}'] = $message;
+			$sub = [
+				'{CLASSNAME}' => $className,
+				'{FUNCTIONNAME}' => $function,
+				'{MESSAGE}' => $message
+			];
 			$output = template(TEMPLATES_PATH."debug.tpl", $sub);
 			echo $output;
-			unset($sub['{CLASSNAME}']);
-			unset($sub['{FUNCTIONNAME}']);
-			unset($sub['{MESSAGE}']);
 		}
 	}
 }

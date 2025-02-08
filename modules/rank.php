@@ -9,16 +9,9 @@ $s = new Game();
 if (!$s->loggedIn || !$_GET['time']){ header("Location: https://realmbattles.org/SGWnew/index.php?"); }
 $s->updatePower($_SESSION['userid']);
 
-if ($_GET['page']) 
-{
-	$rankings = $s->Rankings($_GET['page']);
+$page = $_GET['page'] ?? '1';
+$rankings = $s->Rankings($page);
 
-}
-else
-{
-	$rankings = $s->Rankings('1');
-
-}
 ?>
 <table width="100%" border="0">
   <tr>
@@ -29,30 +22,30 @@ else
     <td>Treasury</td>
 	<td>Attack</td>
   </tr>
-<?
+<?php
 for($x = 0; $x < count($rankings); $x++)
 {
-  if(!$rankings[$x]['rank'] == 0){
-  $allyinfo = $s->getallyinfo($rankings[$x]['allyid']);?>
+  if($rankings[$x]['rank'] != 0){
+  $allyinfo = $s->getallyinfo($rankings[$x]['allyid']); ?>
     <tr>
 	
-  	  <td><a href='javascript:void(0)' onclick="sendData('user','get','<?= $rankings[$x]['uid']; ?>')"><?= $rankings[$x]['name']; ?></a><?if ($rankings[$x]['allyid'] != 0){ ?> [<a href="javascript:void(0)" onclick="sendData('ally_mlist','get','<?= $rankings[$x]['allyid']; ?>','attack'); return false;"><?= $allyinfo->allyname;?></a>]<?}else{}?></td>
-    	<td><?= $rankings[$x]['rank']; ?></td>
-    	<td><?= $rankings[$x]['army']; ?></td>
-    	<td><?= $rankings[$x]['race']; ?></td>
-    	<td><?= $rankings[$x]['cash']; ?></td>
-		<?if ($rankings[$x]['uid'] != $_SESSION[userid]){?>
-		<td><a href="javascript:void(0)" onclick="sendData('action','get','<?= $rankings[$x]['uid']; ?>','attack'); return false;">Attack</a></td><?}else{?>
-       <td></td><?}?>
+  	  <td><a href='javascript:void(0)' onclick="sendData('user','get','<?= htmlspecialchars($rankings[$x]['uid'], ENT_QUOTES, 'UTF-8'); ?>')"><?= htmlspecialchars($rankings[$x]['name'], ENT_QUOTES, 'UTF-8'); ?></a><?php if ($rankings[$x]['allyid'] != 0){ ?> [<a href="javascript:void(0)" onclick="sendData('ally_mlist','get','<?= htmlspecialchars($rankings[$x]['allyid'], ENT_QUOTES, 'UTF-8'); ?>','attack'); return false;"><?= htmlspecialchars($allyinfo->allyname, ENT_QUOTES, 'UTF-8');?></a>]<?php } ?></td>
+    	<td><?= htmlspecialchars($rankings[$x]['rank'], ENT_QUOTES, 'UTF-8'); ?></td>
+    	<td><?= htmlspecialchars($rankings[$x]['army'], ENT_QUOTES, 'UTF-8'); ?></td>
+    	<td><?= htmlspecialchars($rankings[$x]['race'], ENT_QUOTES, 'UTF-8'); ?></td>
+    	<td><?= htmlspecialchars($rankings[$x]['cash'], ENT_QUOTES, 'UTF-8'); ?></td>
+		<?php if ($rankings[$x]['uid'] != $_SESSION['userid']){ ?>
+		<td><a href="javascript:void(0)" onclick="sendData('action','get','<?= htmlspecialchars($rankings[$x]['uid'], ENT_QUOTES, 'UTF-8'); ?>','attack'); return false;">Attack</a></td><?php } else { ?>
+       <td></td><?php } ?>
   		</tr>
 	
-<?
-}
+<?php
+  }
 }
 ?>
 </table>
-<?
-echo "Query Count: ".$s->queryCount."<br>";
+<?php
+echo "Query Count: " . $s->queryCount . "<br>";
 $pagegen->stop();
 print('page generation time: ' . $pagegen->gen());
 ?>

@@ -1,21 +1,21 @@
-<?
+<?php
 // Base::Game.class.php
 
 class Game extends User
 {
 	/*Vars*/
-	var $gameTime; 		//Time In Game
-	var $isRank; 		//Players Rank out of all active users
-	var $actionTurns; 	//Number of Action Turns Use has to use
-	var $inHand;		//Ammount of Money On Handl
-	var $inBank;		//Ammount of Money Bankedlol
-	var $nextTurn;		//Ammount of Time Till Next Turn
-	var $numMessages;   //Number of Messages In Users Inbox
-	var $uid; 			//UserID
-	var $rid;			//Race Identifier
-	var $fields;		//field List
+	public int $gameTime; 		//Time In Game
+	public int $isRank; 		//Players Rank out of all active users
+	public int $actionTurns; 	//Number of Action Turns Use has to use
+	public float $inHand;		//Amount of Money On Hand
+	public float $inBank;		//Amount of Money Banked
+	public int $nextTurn;		//Amount of Time Till Next Turn
+	public int $numMessages;    //Number of Messages In Users Inbox
+	public int $uid; 			//UserID
+	public int $rid;			//Race Identifier
+	public array $fields;		//field List
 
-	function nextTurn()
+	public function nextTurn(): int
 	{
 		$turnTime = 30;
 		$timeIs = date("i");
@@ -30,13 +30,13 @@ class Game extends User
 		return $this->nextTurn;
 	}
 	
-	function getRaces()
+	public function getRaces(): array
 	{
 		$query = "SELECT `r_name`,`rid` FROM `race` LIMIT 30";
 		$q = $this->query($query);		
-		$list = array();
+		$list = [];
 		$counter = 0;
-		while($obj = mysql_fetch_object($q))
+		while($obj = $q->fetch_object())
 		{
 			$list[$counter]["name"] 	= $obj->r_name;
 			$list[$counter]["id"] 		= $obj->rid;
@@ -45,11 +45,14 @@ class Game extends User
 		return $list;
 	}
 	
-	function autoLoad()
+	public function autoLoad(): string
 	{
-		$query = "SELECT rank.overall AS isRank, bank.onHand, bank.inBank, userdata.actionTurns, (SELECT COUNT(messages.toUID) FROM `messages` RIGHT OUTER JOIN `userdata` ON messages.toUID = userdata.uid WHERE userdata.uid = ".$_SESSION['userid']." GROUP BY userdata.uid) AS messageCount FROM `bank`,`userdata`,`rank` WHERE bank.uid=".$_SESSION['userid']." AND userdata.uid = bank.uid  AND rank.uid = bank.uid LIMIT 1";
-		$q = $this->query($query);
-		$auto = mysql_fetch_object($q);
+		$query = "SELECT rank.overall AS isRank, bank.onHand, bank.inBank, userdata.actionTurns, (SELECT COUNT(messages.toUID) FROM `messages` RIGHT OUTER JOIN `userdata` ON messages.toUID = userdata.uid WHERE userdata.uid = ? GROUP BY userdata.uid) AS messageCount FROM `bank`,`userdata`,`rank` WHERE bank.uid=? AND userdata.uid = bank.uid  AND rank.uid = bank.uid LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("ii", $_SESSION['userid'], $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$auto = $q->fetch_object();
 		$gameTime 	= date("F jS H:i:s");
 		$str = "new Array(\"".number_format($auto->onHand)."\",\"".number_format($auto->inBank)."\",\""
 		       .number_format($auto->isRank)."\",\"".number_format($auto->actionTurns)."\",\""
@@ -58,16 +61,19 @@ class Game extends User
 		return $str;
 	}	
 	
-	function messageCount()
+	public function messageCount(): string
 	{	
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Getting Count of Messages");
-		$query = "SELECT count(`message`) FROM `messages` WHERE `toUID`=".$_SESSION['userid']." LIMIT 1000";
-		$q = $this->query($query);
-		$x = mysql_num_rows($q);
+		$query = "SELECT count(`message`) FROM `messages` WHERE `toUID`=? LIMIT 1000";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$x = $q->num_rows;
 		return number_format($x);
 	}
 	
-	function baseVars()
+	public function baseVars(): object
 	{
 		$query = "SELECT     
 					users.uid, 
@@ -81,7 +87,7 @@ class Game extends User
 					planetsize.text, 
 					planets.plnt_name,
 					(SELECT     COUNT(planets.pid) FROM planets RIGHT OUTER JOIN `userdata` 
-					ON planets.uid = userdata.uid WHERE userdata.uid = ".$_SESSION['userid']." GROUP BY userdata.uid) AS `ttlPlanetsOwned`,
+					ON planets.uid = userdata.uid WHERE userdata.uid = ? GROUP BY userdata.uid) AS `ttlPlanetsOwned`,
 					((units.miners *(80+technology.income)) + ( units.lifers *(80+technology.income) ) + ( SUM( planets.income_bonus ) ) + (race.income_bonus*((units.miners *(80+technology.income))) + ( units.lifers *(80+technology.income)))) AS income,
 					((technology.unitProd*(3+technology.uppl))+SUM( planets.up_bonus )+(race.up_bonus*(technology.unitProd*(3+technology.uppl)))) AS up
 					FROM `users` 
@@ -92,13 +98,16 @@ class Game extends User
 					LEFT OUTER JOIN `users` users_1 ON userdata.cid = users_1.uid 
 					LEFT OUTER JOIN `planetsize` ON planets.plnt_size = planetsize.size
 					LEFT OUTER JOIN `technology` ON userdata.uid = technology.uid
-					WHERE users.uid = ".$_SESSION['userid']." GROUP BY users.uid";
-		$q = $this->query($query);
-		$base = mysql_fetch_object($q);
+					WHERE users.uid = ? GROUP BY users.uid";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("ii", $_SESSION['userid'], $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$base = $q->fetch_object();
 		return $base;
 	} 
 	
-	function getRanks()
+	public function getRanks(): object
 	{
 		$query = "SELECT
 					rank.overall	AS rank,
@@ -113,16 +122,19 @@ class Game extends User
 					power.mil_anti	AS milAnti,
 					SUM(rank.mil_atk+rank.mil_def+rank.mil_cov+rank.mil_anti) AS mil
 					FROM rank,power
-					WHERE rank.uid = ".$_SESSION['userid']." AND power.uid = rank.uid GROUP BY rank.uid
+					WHERE rank.uid = ? AND power.uid = rank.uid GROUP BY rank.uid
 					LIMIT 1";
-		$q = $this->query($query);
-		$ranks = mysql_fetch_object($q);
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$ranks = $q->fetch_object();
 		return $ranks;
 	}
 	
-	function getPersonnel($uid)
+	public function getPersonnel(int $uid): object
 	{
-			$query = "SELECT 
+		$query = "SELECT 
 					units.attack 		AS attackCount, 
 					units.superAttack 	AS superAttackCount, 
 					units.attackMercs 	AS attackMercCount,
@@ -155,29 +167,35 @@ class Game extends User
 					unitcost.anticovert	AS anticovertCost,
 					unitcost.superAnticovert AS superAnticovertCost,
 					SUM( units.attack+ units.superAttack+ units.attackMercs+ units.defense+ units.superDefense+ units.defenseMercs+ units.untrained+ units.miners+ units.lifers+ units.covert+ units.superCovert+ units.anticovert+ units.superAnticovert ) AS ttlarmysize
-					FROM `units`, `unitnames`,`userdata`,`unitcost` WHERE userdata.uid = ".$uid." AND unitnames.rid = userdata.rid AND units.uid = userdata.uid AND unitcost.rid = userdata.rid GROUP BY userdata.uid LIMIT 1";
-		$q = $this->query($query);
-		$person = mysql_fetch_object($q);
+					FROM `units`, `unitnames`,`userdata`,`unitcost` WHERE userdata.uid = ? AND unitnames.rid = userdata.rid AND units.uid = userdata.uid AND unitcost.rid = userdata.rid GROUP BY userdata.uid LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $uid);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$person = $q->fetch_object();
 		return $person;
 	}
 	
-	function getOfficers($uid)
+	public function getOfficers(int $uid): array
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving Officers");
-		$query = "SELECT userdata.uid, userdata.uname , race.r_name , rank.overall, (SELECT SUM( units.attack+ units.superAttack+ units.attackMercs+ units.defense+ units.superDefense+ units.defenseMercs+ units.untrained+ units.miners+ units.lifers+ units.covert+ units.superCovert+ units.anticovert+ units.superAnticovert) FROM `units` WHERE uid=".$uid.") AS ttlarmy, (SELECT SUM( units.attackMercs+ units.defenseMercs) FROM `units` WHERE uid=".$uid.") AS mercs
+		$query = "SELECT userdata.uid, userdata.uname , race.r_name , rank.overall, (SELECT SUM( units.attack+ units.superAttack+ units.attackMercs+ units.defense+ units.superDefense+ units.defenseMercs+ units.untrained+ units.miners+ units.lifers+ units.covert+ units.superCovert+ units.anticovert+ units.superAnticovert) FROM `units` WHERE uid=?) AS ttlarmy, (SELECT SUM( units.attackMercs+ units.defenseMercs) FROM `units` WHERE uid=?) AS mercs
 				  FROM `userdata` , `users` , `race` , `rank`
-				  WHERE userdata.cid =".$uid."
+				  WHERE userdata.cid =?
 				  AND users.uid = userdata.uid
 				  AND userdata.rid = race.rid
 				  AND userdata.uid = rank.uid
 				  ORDER BY `overall` ASC
 				  LIMIT 100 ";
-		$q  = $this->query($query);
-		$officers = array();
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iii", $uid, $uid, $uid);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$officers = [];
 		$num = 0;
-		while($offlist = mysql_fetch_assoc($q))
+		while($offlist = $q->fetch_assoc())
 		{
-			$officers[$num] = array();
+			$officers[$num] = [];
 			$officers[$num]["uid"]   = $offlist["uid"];
 			$officers[$num]["name"]  = $offlist["uname"];
 			$officers[$num]["rank"]  = $offlist["overall"];
@@ -189,18 +207,21 @@ class Game extends User
 		return $officers;
 	}
 	
-	function Rankings($pnum=1)
+	public function Rankings(int $pnum=1): array
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving Ranks");
-		$rankings = array();
+		$rankings = [];
 		$perpage = 25;
-		$page = array(1, $perpage); // Selects Page
+		$page = [1, $perpage]; // Selects Page
 		$page[0] = 0 + ( ( $pnum - 1 ) * $perpage);
 		$page[1] = ($pnum*$perpage)-1;
 		$counter = 0; //SO it can just keep adding to array
-		$query = "SELECT SUM(mil_cov + mil_anti) AS covact FROM `power` WHERE uid=".$_SESSION['userid'];
-		$q = $this->query($query);
-		$userStats = mysql_fetch_object($q);
+		$query = "SELECT SUM(mil_cov + mil_anti) AS covact FROM `power` WHERE uid=?";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$userStats = $q->fetch_object();
 		
 		$query = "SELECT rank.overall, users.uid,users.allyid,bank.onHand,power.mil_cov,power.mil_anti,race.r_name,users.uname,
 				  SUM( units.attack+ units.superAttack+ units.attackMercs+ units.defense+ units.superDefense+ units.defenseMercs+ units.untrained+ units.miners+ units.lifers+ units.covert+ units.superCovert+ units.anticovert+ units.superAnticovert) AS armySize
@@ -214,9 +235,8 @@ class Game extends User
 				  AND units.uid = rank.uid
 				  GROUP BY users.uid
 				  ORDER BY rank.overall ASC";
-//				  LIMIT ".$page[0]." , ".$page[1];
 		$q = $this->query($query);
-		while ($rank = mysql_fetch_object($q))
+		while ($rank = $q->fetch_object())
 		{
 			$xfact = $rank->mil_cov + $rank->mil_anti; //Covert Defense See if You Can see stats
 			$rankings[$counter]['uid'] = $rank->uid;
@@ -249,18 +269,21 @@ class Game extends User
 		return $rankings;
 		
 	}
-	function allyRankings($pnum=1,$allyid)
+	public function allyRankings(int $pnum=1, int $allyid): array
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving  alliance Rankings");
-		$rankings = array();
+		$rankings = [];
 		$perpage = 25;
-		$page = array(1, $perpage); // Selects Page
+		$page = [1, $perpage]; // Selects Page
 		$page[0] = 0 + ( ( $pnum - 1 ) * $perpage);
 		$page[1] = ($pnum*$perpage)-1;
 		$counter = 0; //SO it can just keep adding to array
-		$query = "SELECT SUM(mil_cov + mil_anti) AS covact FROM `power` WHERE uid=".$_SESSION['userid'];
-		$q = $this->query($query);
-		$userStats = mysql_fetch_object($q);
+		$query = "SELECT SUM(mil_cov + mil_anti) AS covact FROM `power` WHERE uid=?";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$userStats = $q->fetch_object();
 		
 		$query = "SELECT rank.overall, users.uid,users.allyid,bank.onHand,power.mil_cov,power.mil_anti,race.r_name,users.uname,
 				  SUM( units.attack+ units.superAttack+ units.attackMercs+ units.defense+ units.superDefense+ units.defenseMercs+ units.untrained+ units.miners+ units.lifers+ units.covert+ units.superCovert+ units.anticovert+ units.superAnticovert) AS armySize
@@ -272,12 +295,14 @@ class Game extends User
 				  AND users.uid = bank.uid 
 				  AND rank.uid = bank.uid
 				  AND units.uid = rank.uid
-				  AND users.allyid = '$allyid' 
+				  AND users.allyid = ? 
 				  GROUP BY users.uid
 				  ORDER BY rank.overall ASC";
-//				  LIMIT ".$page[0]." , ".$page[1];
-		$q = $this->query($query);
-		while ($rank = mysql_fetch_object($q))
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("ii", $_SESSION['userid'], $allyid);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		while ($rank = $q->fetch_object())
 		{
 		
 		
@@ -312,42 +337,51 @@ class Game extends User
 		return $rankings;
 		
 	}
-	function getallyinfo($allyid)
+	public function getallyinfo(int $allyid): object
 	{
 	Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving  alliance info");
 		$query = "SELECT *
 					FROM alliances
-					WHERE alliances.allyid = ".$allyid." 
+					WHERE alliances.allyid = ? 
 					LIMIT 1";
-		$q = $this->query($query);
-		$ranks = mysql_fetch_object($q);
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $allyid);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$ranks = $q->fetch_object();
 		return $ranks;
 	}
-	function getUserInfo($uid)
+	public function getUserInfo(int $uid): object
 	{
-		$query = "SELECT SUM(mil_cov + mil_anti) AS covact FROM `power` WHERE uid=".$_SESSION['userid'];
-		$q = $this->query($query);
-		$myStats = mysql_fetch_object($q);
+		$query = "SELECT SUM(mil_cov + mil_anti) AS covact FROM `power` WHERE uid=?";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$myStats = $q->fetch_object();
 
 		$query = "SELECT
 			users.uname AS userName,
 			rank.overall as rank,
 			SUM(power.mil_cov+ power.mil_anti) as `covPro`,
-			(SELECT users.uname FROM users,userdata WHERE userdata.uid=".$uid." AND users.uid = userdata.cid) AS `cmdrName`,
+			(SELECT users.uname FROM users,userdata WHERE userdata.uid=? AND users.uid = userdata.cid) AS `cmdrName`,
 			userdata.cid as `cmdrID`,
-			(SELECT r_name FROM race WHERE rid=(SELECT rid FROM userdata WHERE uid=".$uid.")) AS race,
+			(SELECT r_name FROM race WHERE rid=(SELECT rid FROM userdata WHERE uid=?)) AS race,
 			bank.onHand,
 			SUM( units.attack+ units.superAttack+ units.attackMercs+ units.defense+ units.superDefense+ units.defenseMercs+ units.untrained+ units.miners+ units.lifers+ units.covert+ units.superCovert+ units.anticovert+ units.superAnticovert ) as armySize
 			FROM users, units, bank, userdata, power,rank
-			WHERE userdata.uid=".$uid."
+			WHERE userdata.uid=?
 			AND users.uid = userdata.uid
 			AND bank.uid = userdata.uid
 			AND units.uid = userdata.uid
 			AND power.uid = userdata.uid
 			AND rank.uid = userdata.uid
 			GROUP BY users.uid LIMIT 1";
-		$q = $this->query($query);
-		$userStats = mysql_fetch_object($q);
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iii", $_SESSION['userid'], $uid, $uid);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$userStats = $q->fetch_object();
 		if ($myStats->covact < .2 * $userStats->covPro)
 		{
 			$userStats->armySize = "??????";
@@ -374,19 +408,22 @@ class Game extends User
 		return $userStats;
 	}
 	
-	function getWeapons()
+	public function getWeapons(): array
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving Weapons Currently buyable by player");
 		$query = "SELECT `isDefense`,`cash_cost`,`unit_cost`,`weaponName`,`weaponPower`,`wid`
 		          FROM `armory`
-				  WHERE armory.rid = ".$_SESSION['raceID']."
+				  WHERE armory.rid = ?
 				  ORDER BY `weaponPower` ASC
 				  LIMIT 100";
-		$q = $this->query($query);
-		$weapons = array (); //3d Array for Defense and ATtack Weapons
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['raceID']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$weapons = []; //3d Array for Defense and ATtack Weapons
 		$defCounter = 0;
 		$atkCounter = 0;
-		while($weaps = mysql_fetch_object($q))
+		while($weaps = $q->fetch_object())
 		{
 			if($weaps->isDefense == 1)
 			{
@@ -411,23 +448,26 @@ class Game extends User
 		return $weapons;			
 	}
 	
-	function getWeaponInventory($uid)
+	public function getWeaponInventory(int $uid): array
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving UserID($uid) Weapon Inventory");
-		$weapons = array (); //3d Array for Defense and ATtack Weapons
+		$weapons = []; //3d Array for Defense and ATtack Weapons
 		$defCounter = 0;
 		$atkCounter = 0;
 		$query = "SELECT armory.wid, armory.weaponName , weapons.strength, armory.weaponPower, 
 		                 armory.cash_cost, armory.isDefense, weapons.quanity
 			  	  FROM `armory`,`weapons`,`userdata`
-				  WHERE weapons.uid = ".$uid."
+				  WHERE weapons.uid = ?
 				  AND armory.wid = weapons.wid
 				  AND userdata.uid = weapons.uid
 				  AND armory.rid = userdata.rid
 				  ORDER BY armory.weaponPower ASC
 				  LIMIT 1000";
-		$q = $this->query($query);		 
-		while($weaps = mysql_fetch_object($q))
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $uid);
+		$stmt->execute();
+		$q = $stmt->get_result();		 
+		while($weaps = $q->fetch_object())
 		{
 			if($weaps->isDefense == 1)
 			{
@@ -455,36 +495,48 @@ class Game extends User
 		return $weapons;
 	}
 	
-	function updatePower($uid)
+	public function updatePower(int $uid): void
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Updating User Power Totals");		
-		$query = "SELECT rid FROM userdata WHERE uid=$uid LIMIT 1";
-		$q=$this->query($query);
-		$fetched = mysql_fetch_object($q);
+		$query = "SELECT rid FROM userdata WHERE uid=? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $uid);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$fetched = $q->fetch_object();
 		$rid = $fetched->rid;
 	
 		$weaponQuery = "SELECT weapons.quanity, weapons.strength, armory.weaponPower, armory.isDefense, armory.requireTrained
 						FROM `weapons`,`armory`
-						WHERE weapons.uid =".$uid."
+						WHERE weapons.uid =?
 						AND armory.wid = weapons.wid
-						AND armory.rid = ".$rid."
+						AND armory.rid =?
 						ORDER BY `weaponPower` DESC 
 						LIMIT 1000";
-		$pBonusQuery = "SELECT * FROM `planets` WHERE `uid`=".$uid." LIMIT 1000";
+		$pBonusQuery = "SELECT * FROM `planets` WHERE `uid`=? LIMIT 1000";
 		$comboQuery = "SELECT technology.cov_lvl ,technology.anti_lvl, technology.covert as techcovert, technology.anticovert as techanti, technology.attack as techattack, technology.defense as techdefense, race.* ,  units.`attack` ,  units.`superAttack` ,  units.`attackMercs` ,  units.`defense` ,  
 						units.`superDefense` ,  units.`defenseMercs` ,  units.`covert` ,  units.`superCovert` ,  units.`anticovert` ,  units.`superAnticovert` 
 						FROM  `units` ,  `technology` ,  `race` 
-						WHERE technology.uid =$uid
+						WHERE technology.uid =?
 						AND units.uid = technology.uid 
-						AND race.rid =$rid
+						AND race.rid =?
 						LIMIT 1 ";			
 		/*mySQL connection and query*/
-		$weapon = $this->query($weaponQuery);
-		$pBonus = $this->query($pBonusQuery);
-		$combo	= $this->query($comboQuery);
+		$stmt = $this->db_link->prepare($weaponQuery);
+		$stmt->bind_param("ii", $uid, $rid);
+		$stmt->execute();
+		$weapon = $stmt->get_result();
+		$stmt = $this->db_link->prepare($pBonusQuery);
+		$stmt->bind_param("i", $uid);
+		$stmt->execute();
+		$pBonus = $stmt->get_result();
+		$stmt = $this->db_link->prepare($comboQuery);
+		$stmt->bind_param("ii", $uid, $rid);
+		$stmt->execute();
+		$combo	= $stmt->get_result();
 	
 		/*Object Declarations from MYSQL*/
-		$comboObj = mysql_fetch_object($combo);
+		$comboObj = $combo->fetch_object();
 			
 		/*Covert and Anticovert Calulations*/
 		$cSpys 		= (5*$comboObj->covert) + ( 10 * $comboObj->superCovert );
@@ -492,7 +544,7 @@ class Game extends User
 		$c_tBonus 	= $comboObj->covtech_lvl;
 		$a_tBonus	= $comboObj->antitech_lvl;
 		$c_pBonus	= 0;
-		while ($pBonObj=mysql_fetch_object($pBonus)) 
+		while ($pBonObj=$pBonus->fetch_object()) 
 		{ 
 			$c_pBonus += $pBonObj->cov_bonus; 
 		}
@@ -522,7 +574,7 @@ class Game extends User
 		$dused			= 0;
 		$aDused			= 0;
 		
-		while ($weaponobj = mysql_fetch_object($weapon))
+		while ($weaponobj = $weapon->fetch_object())
 		{
 			if($weaponobj->requireTrained==0)
 			{
@@ -622,7 +674,7 @@ class Game extends User
 				$q_used  	= 0;
 				$sD 		= $superDefense - $sDused;
 				$d 		= $defense - $dused;
-				$dM		= $aMercs - $aDused;	
+				$dM		= $dMercs - $aDused;	
 				/* This Calculates Weapons Power*/
 				$weapon_power = 0;
 				if ($weaponobj->strength > $weaponobj->weaponPower)
@@ -691,7 +743,7 @@ class Game extends User
 		$attackpower += (($comboObj->techattack/10) *$attackpower);
 		$defensepower += (($comboObj->techdefense/10) *$defensepower);
 		/*Queries Planets for Bonuses*/
-		while($pBonObj=mysql_fetch_object($pBonus))
+		while($pBonObj=$pBonus->fetch_object())
 		{
 			$attackpower += $pBonObj->atk_bonus;
 			$defensepower += $pBonObj->def_bonus;
@@ -702,20 +754,25 @@ class Game extends User
 		$attackpower += ($comboObj->atk_bonus*$attackpower);	
 		$defensepower += ($comboObj->def_bonus*$defensepower);	
 	
-		$query = "UPDATE `power` SET `mil_atk` = '".$attackpower."',`mil_def` = '".$defensepower."',`mil_cov` = '".$covert."',`mil_anti` = '".$anticovert."' WHERE `uid` =".$this->clean_sql($uid)." LIMIT 1";
-		$this->query($query);
-		$this->fields = array("unitProd","uppl","income","galaxy","puCap","pmCap","attack","auSteal","auEffect","auRes","defense","duSteal","duEffect","duRes","covert","cuEffect","cuRes","anticovert","acuEffect","acuRes","cov_lvl","anti_lvl","pDef","ascend");
+		$query = "UPDATE `power` SET `mil_atk` = ?,`mil_def` = ?,`mil_cov` = ?,`mil_anti` = ? WHERE `uid` =? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("ddddd", $attackpower, $defensepower, $covert, $anticovert, $uid);
+		$stmt->execute();
+		$this->fields = ["unitProd","uppl","income","galaxy","puCap","pmCap","attack","auSteal","auEffect","auRes","defense","duSteal","duEffect","duRes","covert","cuEffect","cuRes","anticovert","acuEffect","acuRes","cov_lvl","anti_lvl","pDef","ascend"];
 	}
 
-	function buyWeapons($data)
+	public function buyWeapons(array $data): void
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "buying Weapons");
 		$weapons = $this->getWeapons();
 		$cashcost = 0;
 		$unitcost = 0;
-		$query = "SELECT bank.onHand, units.untrained FROM bank, units WHERE bank.uid=".$_SESSION['userid']." AND units.uid = bank.uid";
-		$q = $this->query($query);
-		$stats = mysql_fetch_object($q);
+		$query = "SELECT bank.onHand, units.untrained FROM bank, units WHERE bank.uid=? AND units.uid = bank.uid";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$stats = $q->fetch_object();
 		for ($x = 0; $x < count($weapons['atk']); $x++)
 		{
 			$cashcost += $data[$weapons['atk'][$x]['fieldname']]*$weapons['atk'][$x]['cashcost'];
@@ -736,25 +793,32 @@ class Game extends User
 				
 				if(!$data[$weapons['def'][$x]['fieldname']] <=0)
 				{
-					$query = "SELECT `quanity` FROM `weapons` WHERE `uid`=".$_SESSION['userid']." AND `wid`=".$weapons['def'][$x]['wid']." LIMIT 1";
-					$q = $this->query($query);
-					$rows = mysql_num_rows($q);
-					$obj = mysql_fetch_object($q);
+					$query = "SELECT `quanity` FROM `weapons` WHERE `uid`=? AND `wid`=? LIMIT 1";
+					$stmt = $this->db_link->prepare($query);
+					$stmt->bind_param("ii", $_SESSION['userid'], $weapons['def'][$x]['wid']);
+					$stmt->execute();
+					$q = $stmt->get_result();
+					$rows = $q->num_rows;
+					$obj = $q->fetch_object();
 					if ($rows == 1)
 					{
 						$quan = $obj->quanity + $data[$weapons['def'][$x]['fieldname']];
-						$query = "UPDATE `weapons` SET `quanity`= '".$quan."' WHERE `uid` =".$_SESSION['userid']." AND `wid`=".$weapons['def'][$x]['wid']." LIMIT 1";
-						$this->query($query);
+						$query = "UPDATE `weapons` SET `quanity`= ? WHERE `uid` =? AND `wid`=? LIMIT 1";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("iii", $quan, $_SESSION['userid'], $weapons['def'][$x]['wid']);
+						$stmt->execute();
 					}elseif($rows == 0){
-						$init = "SELECT `weaponPower` FROM `armory` WHERE wid=".$weapons['def'][$x]['wid']." LIMIT 1";
-						$q = $this->query($init);
-						$power = mysql_fetch_object($q);
+						$init = "SELECT `weaponPower` FROM `armory` WHERE wid=? LIMIT 1";
+						$stmt = $this->db_link->prepare($init);
+						$stmt->bind_param("i", $weapons['def'][$x]['wid']);
+						$stmt->execute();
+						$q = $stmt->get_result();
+						$power = $q->fetch_object();
 						$query = "INSERT INTO `weapons` ( `uid` , `wid` , `quanity` , `strength` )
-								  VALUES ('".$_SESSION['userid']."', 
-								  '".$weapons['def'][$x]['wid']."', 
-								  '".$data[$weapons['def'][$x]['fieldname']]."', 
-								  '".$power->weaponPower."')";
-						$this->query($query);
+								  VALUES (?, ?, ?, ?)";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("iiii", $_SESSION['userid'], $weapons['def'][$x]['wid'], $data[$weapons['def'][$x]['fieldname']], $power->weaponPower);
+						$stmt->execute();
 					}
 				}
 			}
@@ -763,34 +827,45 @@ class Game extends User
 				
 				if(!$data[$weapons['atk'][$x]['fieldname']] <=0)
 				{
-					$query = "SELECT `quanity` FROM `weapons` WHERE `uid`=".$_SESSION['userid']." AND `wid`=".$weapons['atk'][$x]['wid']." LIMIT 1";
-					$q = $this->query($query);
-					$rows = mysql_num_rows($q);
-					$obj = mysql_fetch_object($q);
+					$query = "SELECT `quanity` FROM `weapons` WHERE `uid`=? AND `wid`=? LIMIT 1";
+					$stmt = $this->db_link->prepare($query);
+					$stmt->bind_param("ii", $_SESSION['userid'], $weapons['atk'][$x]['wid']);
+					$stmt->execute();
+					$q = $stmt->get_result();
+					$rows = $q->num_rows;
+					$obj = $q->fetch_object();
 					if ($rows == 1)
 					{
 						$quan = $obj->quanity + $data[$weapons['atk'][$x]['fieldname']];
-						$query = "UPDATE `weapons` SET `quanity`= '".$quan."' WHERE `uid` =".$_SESSION['userid']." AND `wid`=".$weapons['atk'][$x]['wid']." LIMIT 1";
-						$this->query($query);
+						$query = "UPDATE `weapons` SET `quanity`= ? WHERE `uid` =? AND `wid`=? LIMIT 1";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("iii", $quan, $_SESSION['userid'], $weapons['atk'][$x]['wid']);
+						$stmt->execute();
 					}elseif($rows == 0){
-						$init = "SELECT `weaponPower` FROM `armory` WHERE wid=".$weapons['atk'][$x]['wid']." LIMIT 1";
-						$q = $this->query($init);
-						$power = mysql_fetch_object($q);
+						$init = "SELECT `weaponPower` FROM `armory` WHERE wid=? LIMIT 1";
+						$stmt = $this->db_link->prepare($init);
+						$stmt->bind_param("i", $weapons['atk'][$x]['wid']);
+						$stmt->execute();
+						$q = $stmt->get_result();
+						$power = $q->fetch_object();
 						$query = "INSERT INTO `weapons` ( `uid` , `wid` , `quanity` , `strength` )
-								  VALUES ('".$_SESSION['userid']."', 
-								  '".$weapons['atk'][$x]['wid']."', 
-								  '".$data[$weapons['atk'][$x]['fieldname']]."', 
-								  '".$power->weaponPower."')";
-						$this->query($query);
+								  VALUES (?, ?, ?, ?)";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("iiii", $_SESSION['userid'], $weapons['atk'][$x]['wid'], $data[$weapons['atk'][$x]['fieldname']], $power->weaponPower);
+						$stmt->execute();
 					}
 				}
 			}
 			$endcash = (float) number_format($cashavail,'0','','')-number_format($cashcost,'0','','');
 			$endunit = $unitsavail-$unitcost;
-			$query = "UPDATE `bank` SET `onHand`='".$endcash."' WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-			$this->query($query);
-			$query = "UPDATE `units` SET `untrained`= '".$endunit."' WHERE `uid` =".$_SESSION['userid']." LIMIT 1";
-			$this->query($query);
+			$query = "UPDATE `bank` SET `onHand`=? WHERE `uid`=? LIMIT 1";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("di", $endcash, $_SESSION['userid']);
+			$stmt->execute();
+			$query = "UPDATE `units` SET `untrained`= ? WHERE `uid` =? LIMIT 1";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("ii", $endunit, $_SESSION['userid']);
+			$stmt->execute();
 			echo "Purchase Successful";
 		}elseif($unitsavail < $unitcost && $cashavail < $cashcost){
 			echo "Not Enough Cash or Units";
@@ -801,7 +876,7 @@ class Game extends User
 		}
 	}//update to include withdrawl from Bank
 	
-	function trainUnits($atk,$uberAtk,$def,$uberDef,$miners,$cov,$uberCov,$anti,$uberAnti)
+	public function trainUnits(int $atk, int $uberAtk, int $def, int $uberDef, int $miners, int $cov, int $uberCov, int $anti, int $uberAnti): void
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Training Units");
 		$this->autoLoad();
@@ -811,7 +886,7 @@ class Game extends User
 					($def*$trn->defenseCost)+
 		            ($uberDef*$trn->superDefenseCost)+
 					($miners*1500)+
-					($cov*$trn->covertCost)+
+					 ($cov*$trn->covertCost)+
 					($uberCov*$trn->superCovertCost)+
 					($anti*$trn->anticovertCost)+
 					($uberAnti*$trn->superAnticovertCost);
@@ -928,7 +1003,7 @@ $atk = 0;$uberAtk=0;$def=0;$uberDef=0;$miners=0;$cov=0;$uberCov=0;$anti=0;$uberA
 		}
 	}
 	
-	function untrainUnits($atk,$def,$cov,$anti,$min)
+	public function untrainUnits(int $atk, int $def, int $cov, int $anti, int $min): void
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Resigning Units");
 		$trn = $this->getPersonnel($_SESSION['userid']);
@@ -966,7 +1041,7 @@ $atk = 0;$def=0;$min=0;$cov=0;$anti=0;
 		}
 	}
 	
-	function attack_raid($type,$uid,$turns=0)
+	public function attack_raid(string $type, int $uid, int $turns=0): ?int
 	{
 		if ($turns == 0||!$uid > 0) { exit; }
 		if($uid == $_SESSION['userid']) { echo "Can't Attack Ones Self"; exit; }
@@ -994,45 +1069,52 @@ $atk = 0;$def=0;$min=0;$cov=0;$anti=0;
 					technology.auSteal AS take,
 					technology.acuEffect AS acKill,
 					technology.acuRes AS acDie,
-					(SELECT `uname` FROM users WHERE uid=$uid) AS atkdName,
-					(SELECT `uid` FROM users WHERE uid=$uid) AS atkdID,
-					(SELECT `rid` FROM userdata WHERE uid=$uid) AS atkdRace,
-					(SELECT power.mil_def FROM power WHERE uid=$uid) AS atkdPower,
-					(SELECT defense FROM units WHERE uid=$uid) AS defense,
-					(SELECT superDefense FROM units WHERE uid=$uid) AS superDefense,
-					(SELECT defenseMercs FROM units WHERE uid=$uid) AS defenseMerc,
-					(SELECT covert FROM `units` WHERE uid=$uid) AS covert,
-					(SELECT superCovert FROM `units` WHERE uid=$uid) AS superCovert,
+					(SELECT `uname` FROM users WHERE uid=?) AS atkdName,
+					(SELECT `uid` FROM users WHERE uid=?) AS atkdID,
+					(SELECT `rid` FROM userdata WHERE uid=?) AS atkdRace,
+					(SELECT power.mil_def FROM power WHERE uid=?) AS atkdPower,
+					(SELECT defense FROM units WHERE uid=?) AS defense,
+					(SELECT superDefense FROM units WHERE uid=?) AS superDefense,
+					(SELECT defenseMercs FROM units WHERE uid=?) AS defenseMerc,
+					(SELECT covert FROM `units` WHERE uid=?) AS covert,
+					(SELECT superCovert FROM `units` WHERE uid=?) AS superCovert,
 					(SELECT `defense` FROM `unitnames` WHERE `rid`=atkdRace) AS defenseName,
 					(SELECT superDefense FROM `unitnames` WHERE `rid`=atkdRace) AS superDefenseName,
 					(SELECT defenseMercs FROM `unitnames` WHERE `rid`=atkdRace) AS defenseMercName,
 					(SELECT covert FROM `unitnames` WHERE `rid`=atkdRace) AS covertName,
 					(SELECT superCovert FROM `unitnames` WHERE `rid`=atkdRace) AS superCovertName,
-					(SELECT `duSteal` FROM technology WHERE `uid`=$uid) AS protect,
-					(SELECT `cuEffect` FROM technology WHERE `uid`=$uid) AS cKill,
-					(SELECT `cuRes` FROM technology WHERE `uid`=$uid) AS cDie,
-					(SELECT `duEffect` FROM technology WHERE `uid`=$uid) AS defenseKill,
-					(SELECT `duRes` FROM technology WHERE `uid`=$uid) AS defenseDie,
-					(SELECT untrained FROM `units` WHERE `uid`=$uid) AS uu
+					(SELECT `duSteal` FROM technology WHERE `uid`=?) AS protect,
+					(SELECT `cuEffect` FROM technology WHERE `uid`=?) AS cKill,
+					(SELECT `cuRes` FROM technology WHERE `uid`=?) AS cDie,
+					(SELECT `duEffect` FROM technology WHERE `uid`=?) AS defenseKill,
+					(SELECT `duRes` FROM technology WHERE `uid`=?) AS defenseDie,
+					(SELECT untrained FROM `units` WHERE `uid`=?) AS uu
 					FROM `units`, `userdata`, `users`, `unitnames`,`power`,`bank`,`technology`
-					WHERE userdata.uid = ".$_SESSION['userid']."
+					WHERE userdata.uid = ?
 					AND power.uid = userdata.uid
 					AND units.uid = userdata.uid
-					AND bank.uid = $uid
+					AND bank.uid = ?
 					AND unitnames.rid = userdata.rid
 					AND users.uid = userdata.uid";
-		$this->updatePower($_SESSION['userid']);
-		$this->updatePower($uid);
-		$q = $this->query($query);
-		$data = mysql_fetch_object($q);			
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iiiiiiiiiiiiiiiiiiiiii", $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $uid, $_SESSION['userid'], $uid);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$data = $q->fetch_object();			
 		$atkWpowerQuery = "SELECT weapons.wid,armory.weaponPower,armory.weaponName,weapons.strength,weapons.quanity,armory.requireTrained FROM `weapons`,`armory` WHERE 
-							armory.wid = weapons.wid AND weapons.uid = ".$data->atkrID." AND 
-							armory.rid = ".$data->atkrRace." AND armory.isDefense = 0 ORDER BY armory.weaponPower DESC LIMIT 10000";
+							armory.wid = weapons.wid AND weapons.uid = ? AND 
+							armory.rid = ? AND armory.isDefense = 0 ORDER BY armory.weaponPower DESC LIMIT 10000";
 		$defWpowerQuery = "SELECT weapons.wid,armory.`weaponPower`,armory.`weaponName`,weapons.strength,weapons.quanity,armory.requireTrained FROM `weapons`,`armory` WHERE 
-							armory.wid = weapons.wid AND weapons.uid = ".$data->atkdID." AND 
-							armory.rid = ".$data->atkdRace." AND armory.isDefense = 1 ORDER BY armory.weaponPower DESC LIMIT 10000";
-		$atkWpowerQ = $this->query($atkWpowerQuery);
-		$defWpowerQ = $this->query($defWpowerQuery);
+							armory.wid = weapons.wid AND weapons.uid = ? AND 
+							armory.rid = ? AND armory.isDefense = 1 ORDER BY armory.weaponPower DESC LIMIT 10000";
+		$stmt = $this->db_link->prepare($atkWpowerQuery);
+		$stmt->bind_param("ii", $data->atkrID, $data->atkrRace);
+		$stmt->execute();
+		$atkWpowerQ = $stmt->get_result();
+		$stmt = $this->db_link->prepare($defWpowerQuery);
+		$stmt->bind_param("ii", $data->atkdID, $data->atkdRace);
+		$stmt->execute();
+		$defWpowerQ = $stmt->get_result();
 		$atk = round(abs( ( mt_rand(75,100) / 100 ) * $data->atkrPower));
 		$def = round(abs( ( mt_rand(75,100) / 100 ) * $data->atkdPower));
 		
@@ -1058,7 +1140,7 @@ $atk = 0;$def=0;$min=0;$cov=0;$anti=0;
 		$counter = 0;
 		$a_equip = "It was Observed and Recorded that ".$data->atkrName."'s forces were equiped as follows:<br><table border='0'>";
 		$atkW = "<table border='0'>";
-		while($awp = mysql_fetch_object($atkWpowerQ))
+		while($awp = $atkWpowerQ->fetch_object())
 		{
 			if($awp->requireTrained==0)
 			{
@@ -1144,7 +1226,7 @@ $atk = 0;$def=0;$min=0;$cov=0;$anti=0;
 		$counter = 0;
 		$d_equip = "It was Observed and Recorded that ".$data->atkdName."'s forces were equiped as follows:<br> <table border='0'>  ";
 		$defW = "<table border='0'>";
-		while($dwp = mysql_fetch_object($defWpowerQ))
+		while($dwp = $defWpowerQ->fetch_object())
 		{
 			if($dwp->requireTrained==0)
 			{
@@ -1231,19 +1313,27 @@ $atk = 0;$def=0;$min=0;$cov=0;$anti=0;
 				$succes = 1;
 				$str .= "Raid Successful<br>";
 				$resources = (abs(((int)round( ($data->uu * ( ( ( mt_rand(15,25) / 100 ) + ( mt_rand(15,25) / 100 ) ) /2) ) ) ) * $resStolen));
-				$query = "UPDATE `units` SET `untrained`=(`untrained`+$resources) WHERE `uid`=".$this->clean_sql($_SESSION['userid'])." LIMIT 1";
-				if (!$this->query($query)) { echo "ERROR with Adding Resources"; exit;}
-				$query = "UPDATE `units` SET `untrained`=(`untrained`-$resources) WHERE `uid`=".$this->clean_sql($uid)." LIMIT 1";
-				if (!$this->query($query)) { echo "ERROR with Taking Resources"; exit;}
+				$query = "UPDATE `units` SET `untrained`=(`untrained`+?) WHERE `uid`=? LIMIT 1";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("ii", $resources, $_SESSION['userid']);
+				if (!$stmt->execute()) { echo "ERROR with Adding Resources"; exit;}
+				$query = "UPDATE `units` SET `untrained`=(`untrained`-?) WHERE `uid`=? LIMIT 1";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("ii", $resources, $uid);
+				if (!$stmt->execute()) { echo "ERROR with Taking Resources"; exit;}
 				$str .= "Resources Stolen: ".$resources." in Untrained Units<br>";
 			}elseif($type == "attack"){
 				$str .= "Attack Successful<br>";
 				$resources = abs(round($data->money * $resStolen * ( mt_rand(50,60) / 100 )));
 				$str .= "Resources Stolen: ".$resources." in Naquadah<br>";
-				$query = "UPDATE `bank` SET `onHand`=(`onHand`+$resources) WHERE `uid`=".$this->clean_sql($_SESSION['userid'])." LIMIT 1";
-				if (!$this->query($query)) { echo "ERROR with Adding Resources"; exit;}
-				$query = "UPDATE `bank` SET `onHand`=(`onHand`-$resources) WHERE `uid`=".$this->clean_sql($uid)." LIMIT 1";
-				if (!$this->query($query)) { echo "ERROR with Taking Resources"; exit;}
+				$query = "UPDATE `bank` SET `onHand`=(`onHand`+?) WHERE `uid`=? LIMIT 1";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("ii", $resources, $_SESSION['userid']);
+				if (!$stmt->execute()) { echo "ERROR with Adding Resources"; exit;}
+				$query = "UPDATE `bank` SET `onHand`=(`onHand`-?) WHERE `uid`=? LIMIT 1";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("ii", $resources, $uid);
+				if (!$stmt->execute()) { echo "ERROR with Taking Resources"; exit;}
 				$succes = 1;
 			}
 		}else{
@@ -1272,37 +1362,51 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 		
 		/*ATTaCK WEAPONS FOR LOOP and AtkDead*/
 		for($x=0; $x <count($atkwps)&&$x<count($atkNew); $x++){
-		$query = "UPDATE `weapons` SET `strength`=".$this->clean_sql($atkNew[$x])." WHERE `uid`=".$this->clean_sql($_SESSION['userid'])." AND `wid`=".$this->clean_sql($atkwps[$x])." LIMIT 1";
-			if (!$this->query($query)) { echo "ERROR with Attack Strength Update"; exit;}
+		$query = "UPDATE `weapons` SET `strength`=? WHERE `uid`=? AND `wid`=? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iii", $atkNew[$x], $_SESSION['userid'], $atkwps[$x]);
+			if (!$stmt->execute()) { echo "ERROR with Attack Strength Update"; exit;}
 		}
-		$query = "UPDATE `units` SET `superAttack`=(`superAttack`-$uberAtkDead), `attack`=(`attack`-$atkDead), `attackMercs`=(`attackMercs`-$atkMercDead) WHERE `uid`=".$this->clean_sql($_SESSION['userid'])." LIMIT 1";
-		if (!$this->query($query)) { echo "ERROR with Attack Unit Update"; exit;}
+		$query = "UPDATE `units` SET `superAttack`=(`superAttack`-?), `attack`=(`attack`-?), `attackMercs`=(`attackMercs`-?) WHERE `uid`=? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iiii", $uberAtkDead, $atkDead, $atkMercDead, $_SESSION['userid']);
+		if (!$stmt->execute()) { echo "ERROR with Attack Unit Update"; exit;}
 		
 		/*This Ends Attack and Start Defense and Def Dead*/
 		for($x=0; $x <count($defwps)&&$x<count($defNew); $x++){
-			$query = "UPDATE `weapons` SET `strength`=".$this->clean_sql($defNew[$x])." WHERE `uid`=".$this->clean_sql($uid)." AND `wid`=".$this->clean_sql($defwps[$x])." LIMIT 1";
-			if (!$this->query($query)) { echo "ERROR with Defense Strength Update"; exit;}
+			$query = "UPDATE `weapons` SET `strength`=? WHERE `uid`=? AND `wid`=? LIMIT 1";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("iii", $defNew[$x], $uid, $defwps[$x]);
+			if (!$stmt->execute()) { echo "ERROR with Defense Strength Update"; exit;}
 		}
-		$query = "UPDATE `units` SET `superDefense`=(`superDefense`-$uberDefDead), `defense`=(`defense`-$defDead), `defenseMercs`=(`defenseMercs`-$defMercDead) WHERE `uid`=".$this->clean_sql($uid)." LIMIT 1";
-		if (!$this->query($query)) { echo "ERROR with Defense UNits Update"; exit;};
+		$query = "UPDATE `units` SET `superDefense`=(`superDefense`-?), `defense`=(`defense`-?), `defenseMercs`=(`defenseMercs`-?) WHERE `uid`=? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iiii", $uberDefDead, $defDead, $defMercDead, $uid);
+		if (!$stmt->execute()) { echo "ERROR with Defense UNits Update"; exit;}
 		
 		/*ENDS the LOOPS*/
-		$query = "INSERT INTO `actionlog` ( `actID`,`uid` , `to_uid` , `time` , `type` , `turnsUsed` , `atkSent` , `atkEquip` , `defSent` , `defEquip` , `attackPower` , `defensePower` , `atkDead` , `superAtkDead` , `atkMercsDead` , `antiDead` , `superAntiDead` , `defDead` , `superDefDead` , `defMercsDead` , `covDead` , `superCovDead` , `atkWeaponStatus` , `defWeaponStatus` , `success` , `phrase` , `stolen` ) VALUES ( NULL, ".$this->clean_sql($_SESSION[userid]).", ".$this->clean_sql($uid).", ".$this->clean_sql($time).", ".$this->clean_sql($type).", ".$this->clean_sql($turns).", ".$this->clean_sql($atkr).", ".$this->clean_sql($a_equip).", ".$this->clean_sql($atkd).", ".$this->clean_sql($d_equip).", ".$this->clean_sql($atk).", ".$this->clean_sql($def).", ".$this->clean_sql($atkDead).", ".$this->clean_sql($uberAtkDead).", ".$this->clean_sql($atkMercDead).", ".$this->clean_sql($antiDead).", ".$this->clean_sql($uberAntiDead).", ".$this->clean_sql($defDead).", ".$this->clean_sql($uberDefDead).", ".$this->clean_sql($defMercDead).", ".$this->clean_sql($covDead).", ".$this->clean_sql($uberCovDead).", ".$this->clean_sql($atkW).", ".$this->clean_sql($defW).", ".$this->clean_sql($succes).", ".$this->clean_sql($str).", ".$this->clean_sql($resources).")";
-		
-		if (!$this->query($query)) { echo "ERROR with ActionLog Insert"; exit;}
-		$query = "UPDATE `userdata` SET `actionTurns`=(`actionTurns`-$turns) WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-		$q = $this->query($query);
+		$query = "INSERT INTO `actionlog` ( `actID`,`uid` , `to_uid` , `time` , `type` , `turnsUsed` , `atkSent` , `atkEquip` , `defSent` , `defEquip` , `attackPower` , `defensePower` , `atkDead` , `superAtkDead` , `atkMercsDead` , `antiDead` , `superAntiDead` , `defDead` , `superDefDead` , `defMercsDead` , `covDead` , `superCovDead` , `atkWeaponStatus` , `defWeaponStatus` , `success` , `phrase` , `stolen` ) VALUES ( NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iiissssssssssssssssssssssss", $_SESSION['userid'], $uid, $time, $type, $turns, $atkr, $a_equip, $atkd, $d_equip, $atk, $def, $atkDead, $uberAtkDead, $atkMercDead, $antiDead, $uberAntiDead, $defDead, $uberDefDead, $defMercDead, $covDead, $uberCovDead, $atkW, $defW, $succes, $str, $resources);
+		if (!$stmt->execute()) { echo "ERROR with ActionLog Insert"; exit;}
+		$query = "UPDATE `userdata` SET `actionTurns`=(`actionTurns`-?) WHERE `uid`=? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("ii", $turns, $_SESSION['userid']);
+		$q = $stmt->execute();
 		if(!$q){ echo "ERROR with Removing Turns Used"; exit;}else{ $mysql = $q; }
-		$query = "SELECT actID FROM actionlog WHERE type=".$this->clean_sql($type)." AND uid =".$this->clean_sql($_SESSION[userid])." AND to_UID= ".$this->clean_sql($uid)." AND time=".$this->clean_sql($time)." LIMIT 1";
-		$q = $this->query($query);
+		$query = "SELECT actID FROM actionlog WHERE type=? AND uid =? AND to_UID= ? AND time=? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("siii", $type, $_SESSION['userid'], $uid, $time);
+		$stmt->execute();
+		$q = $stmt->get_result();
 		if(!$q) { echo "ERROR with actID Select"; exit;} else{ $mysql = $q; }
-		$obj = mysql_fetch_object($mysql);
+		$obj = $q->fetch_object();
 		$this->updatePower($_SESSION['userid']);
 		$this->updatePower($uid);
 		return $obj->actID;
 	}
 	
-	function percs($val1, $val2)
+	public function percs(float $val1, float $val2): float
 	{
 		Debug::printMsg(__CLASS__, __FUNCTION__, "Getting Weapon Damage Percentages.");
 		if($val2 == 0 || $val1 == 0){
@@ -1331,13 +1435,16 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 		return $power;
 	}
 	
-	function getActID($actID)
+	public function getActID(int $actID): bool
 	{
-		$query = "SELECT * FROM actionlog WHERE actID=".$this->clean_sql($actID)." LIMIT 1";
-		if(!$this->query($query))
+		$query = "SELECT * FROM actionlog WHERE actID=? LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $actID);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		if(!$q)
 		{ return false; }else{
-			$q = $this->query($query);
-			$act = mysql_fetch_object($q);
+			$act = $q->fetch_object();
 			if ($act->actID > 0)
 			{
 				if ($act->to_uid != $_SESSION['userid'] && $act->uid != $_SESSION['userid'])
@@ -1359,7 +1466,7 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 								." Trained:"
 								.number_format($act->atkDead)
 								." Mercenaries:"
-								.number_format($act->atkMercDead)
+								.number_format($act->atkMercsDead)
 								."<br>"
 								."Defense Was: "
 								.number_format($act->defensePower)
@@ -1369,7 +1476,7 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 								." Trained:"
 								.number_format($act->defDead)
 								." Mercenaries:"
-								.number_format($act->defMercDead)
+								.number_format($act->defMercsDead)
 								."<br>";
 							if ($act->to_uid == $_SESSION['userid']){
 								echo "Defense Weapons went from/to: ".$act->defWeaponStatus."<br>";
@@ -1523,19 +1630,25 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 		}
 	}
 	
-	function actionLog($type ="attack")
+	public function actionLog(string $type ="attack"): void
 	{
-		$byMeQuery = "SELECT `actID`,`to_uid` AS uid, users.uname as user, `time`, `success`,`stolen`,actionlog.`thereDead`,actionlog.`myDead`, `turnsUsed`, `attackPower`, `defensePower`  FROM actionlog,users WHERE actionlog.`uid`=".$_SESSION['userid']." AND users.uid =actionlog.to_uid AND `type`=".$this->clean_sql($type)." ORDER BY actID DESC";
-		$toMeQuery = "SELECT `actID`,actionlog.`uid` AS uid, users.uname as user, `time`, `stolen`,actionlog.`thereDead`,actionlog.`myDead`, `turnsUsed`, `attackPower`, `defensePower`  FROM actionlog,users WHERE actionlog.to_uid=".$_SESSION['userid']." AND users.uid =actionlog.uid AND `type`=".$this->clean_sql($type)." ORDER BY actID DESC";
-		$byMeQ = $this->query($byMeQuery);
-		$toMeQ = $this->query($toMeQuery);
+		$byMeQuery = "SELECT `actID`,`to_uid` AS uid, users.uname as user, `time`, `success`,`stolen`,actionlog.`thereDead`,actionlog.`myDead`, `turnsUsed`, `attackPower`, `defensePower`  FROM actionlog,users WHERE actionlog.`uid`=? AND users.uid =actionlog.to_uid AND `type`=? ORDER BY actID DESC";
+		$toMeQuery = "SELECT `actID`,actionlog.`uid` AS uid, users.uname as user, `time`, `stolen`,actionlog.`thereDead`,actionlog.`myDead`, `turnsUsed`, `attackPower`, `defensePower`  FROM actionlog,users WHERE actionlog.to_uid=? AND users.uid =actionlog.uid AND `type`=? ORDER BY actID DESC";
+		$stmt = $this->db_link->prepare($byMeQuery);
+		$stmt->bind_param("is", $_SESSION['userid'], $type);
+		$stmt->execute();
+		$byMeQ = $stmt->get_result();
+		$stmt = $this->db_link->prepare($toMeQuery);
+		$stmt->bind_param("is", $_SESSION['userid'], $type);
+		$stmt->execute();
+		$toMeQ = $stmt->get_result();
 		switch($type)
 		{
 			case "attack":
 				print "<center><table border=0><tr><td colspan='9' align='center'>Attacks By You</td></tr><tr><td>Time</td><td>Enemy</td><td>Result</td>
 					<td>Turns</td><td>Enemy Losses</td><td>Your Losses</td>
 					<td> Damage By You</td><td>Damage To You</td></tr>";
-				while ($byMe = mysql_fetch_object($byMeQ))
+				while ($byMe = $byMeQ->fetch_object())
 				{
 					?>
 					
@@ -1552,12 +1665,12 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 					<a href="javascript:void(0)" onclick="sendData('actionLogs' , 'get' , '<?= $byMe->actID; ?>','atk'  )">Details
 					</a></td>
 					</tr>
-			<?
+			<?php
 				}
 				echo "<tr><td colspan='9' align='center'>Attacks On You</td></tr><tr><td>Time</td><td>Enemy</td><td>Result</td>
 					<td>Turns</td><td>Enemy Losses</td><td>Your Losses</td>
 					<td> Damage By You</td><td>Damage To You</td></tr>";
-				while ($toMe = mysql_fetch_object($toMeQ))
+				while ($toMe = $toMeQ->fetch_object())
 				{
 					?>
 					
@@ -1574,7 +1687,7 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 					<a href="javascript:void(0)" onclick="sendData('actionLogs' , 'get' , '<?= $toMe->actID; ?>', 'atk' )">Details
 					</a></td>
 					</tr>
-			<?
+			<?php
 				}
 				echo "</table></center>";						
 				break;
@@ -1582,7 +1695,7 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 				print "<center><table border=0><tr><td colspan='9' align='center'>Raids By You</td></tr><tr><td>Time</td><td>Enemy</td><td>Result</td>
 					<td>Turns</td><td>Enemy Losses</td><td>Your Losses</td>
 					<td> Damage By You</td><td>Damage To You</td></tr>";
-				while ($byMe = mysql_fetch_object($byMeQ))
+				while ($byMe = $byMeQ->fetch_object())
 				{
 					?>
 					
@@ -1599,12 +1712,12 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 					<a href="javascript:void(0)" onclick="sendData('actionLogs' , 'get' , '<?= $byMe->actID; ?>', 'atk' )">Details
 					</a></td>
 					</tr>
-			<?
+			<?php
 				}
 				print "<tr><td colspan='9' align='center'>Raids On You</td></tr><tr><td>Time</td><td>Enemy</td><td>Result</td>
 					<td>Turns</td><td>Enemy Losses</td><td>Your Losses</td>
 					<td> Damage By You</td><td>Damage To You</td></tr>";
-				while ($toMe = mysql_fetch_object($toMeQ))
+				while ($toMe = $toMeQ->fetch_object())
 				{
 					?>
 					
@@ -1621,13 +1734,13 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 					<a href="javascript:void(0)" onclick="sendData('actionLogs' , 'get' , '<?= $toMe->actID; ?>', 'atk' )">Details
 					</a></td>
 					</tr>
-                    <?
+                    <?php
 				}
 				echo "</table></center>";						
 				break;
 			case "spy":
 				print "<center><table border=0><tr><td colspan='9' align='center'>Spys By You</td></tr><tr><td>Time</td><td>Enemy</td><td>Result</td></tr>";
-				while ($byMe = mysql_fetch_object($byMeQ))
+				while ($byMe = $byMeQ->fetch_object())
 				{
 					?>
 					
@@ -1639,10 +1752,10 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 					<a href="javascript:void(0)" onclick="sendData('actionLogs' , 'get' , '<?= $byMe->actID; ?>', 'atk' )">Details
 					</a></td>
 					</tr>
-			<?
+			<?php
 				}
 				print "<tr><td colspan='9' align='center'>Spys On You</td></tr><tr><td>Time</td><td>Enemy</td><td>Result</td></tr>";
-				while ($toMe = mysql_fetch_object($toMeQ))
+				while ($toMe = $toMeQ->fetch_object())
 				{
 					?>
 					
@@ -1654,14 +1767,14 @@ $atkr = "$data->atkrName Sent:<br>  $data->superAnticovert $data->superAnticover
 					<a href="javascript:void(0)" onclick="sendData('actionLogs' , 'get' , '<?= $toMe->actID; ?>', 'atk' )">Details
 					</a></td>
 					</tr>
-                    <?
+                    <?php
 				}
 				echo "</table></center>";
 				break;						
 		}
 	}
 	
-	function turnUpdate()
+	public function turnUpdate(): bool
 	{
 		/*Queries Users From Database and Last Time THey Logged in*/
 		$query  = "SELECT users.uid AS user, 
@@ -1703,21 +1816,27 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 		$incS = $this->query($incQ);
 		$uids = $this->query($uidq);
 		$rankings = $this->query($rankQ);
-		$users = array();
-		while($data = mysql_fetch_object($q))
+		$users = [];
+		while($data = $q->fetch_object())
 		{
 			/*Gives Naq*/
-			$query = "UPDATE `bank` SET `onHand` =(`onHand`+$data->Income) WHERE `uid` =$data->user LIMIT 1 ";
-			$this->query($query);
+			$query = "UPDATE `bank` SET `onHand` =(`onHand`+?) WHERE `uid` =? LIMIT 1 ";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("ii", $data->Income, $data->user);
+			$stmt->execute();
 			/*Gives Turns*/
-			$query = "UPDATE `userdata` SET `actionTurns` = (`actionTurns` + 3) WHERE `uid` =$data->user LIMIT 1";
-			$this->query($query);
+			$query = "UPDATE `userdata` SET `actionTurns` = (`actionTurns` + 3) WHERE `uid` =? LIMIT 1";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("i", $data->user);
+			$stmt->execute();
 			/*Gives UU*/
-			$query = "UPDATE `units` SET `untrained` = (`untrained` + $data->up) WHERE `uid` =$data->user LIMIT 1";
-			$this->query($query);
+			$query = "UPDATE `units` SET `untrained` = (`untrained` + ?) WHERE `uid` =? LIMIT 1";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("ii", $data->up, $data->user);
+			$stmt->execute();
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($atk))
+		while ($data = $atk->fetch_object())
 		{
 			$users[$data->uid]["atk"] = $counter;
 			echo "$data->uid Atk Rank is $counter <br>";
@@ -1725,60 +1844,62 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 			
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($def))
+		while ($data = $def->fetch_object())
 		{
 			$users[$data->uid]["def"] = $counter;
 			echo "$data->uid Def Rank is $counter <br>";
 			$counter++;
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($cov))
+		while ($data = $cov->fetch_object())
 		{
 			$users[$data->uid]["cov"] = $counter;
 			echo "$data->uid Cov Rank is $counter <br>";
 			$counter++;
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($anti))
+		while ($data = $anti->fetch_object())
 		{
 			$users[$data->uid]["anti"] = $counter;
 			echo "$data->uid Anti Rank is $counter <br>";
 			$counter++;
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($upS))
+		while ($data = $upS->fetch_object())
 		{
 			$users[$data->uid]["up"] = $counter;
 			echo "$data->uid Unit Production Rank is $counter <br>";
 			$counter++;
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($incS))
+		while ($data = $incS->fetch_object())
 		{
 			$users[$data->uid]["inc"] = $counter;
 			echo "$data->uid Inc Rank is $counter <br>";
 			$counter++;
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($rankings))
+		while ($data = $rankings->fetch_object())
 		{
 			$users[$data->uid]["overall"] = $counter;
 			echo "$data->uname overall Rank is $counter <br>";
 			$counter++; 
 		}
 		$counter = 1;
-		while ($data = mysql_fetch_object($uids))
+		while ($data = $uids->fetch_object())
 		{
-			$query = "UPDATE rank SET `mil_atk`=".$users[$data->uid]["atk"].", `mil_def`=".$users[$data->uid]["def"].", `mil_cov`=".$users[$data->uid]["cov"].", `mil_anti`=".$users[$data->uid]["anti"].", `up`= ".$users[$data->uid]["up"].", `income`=".$users[$data->uid]["inc"].", `mil_total`=".$counter.", `overall`=".$users[$data->uid]["overall"]." WHERE uid=$data->uid LIMIT 1";
+			$query = "UPDATE rank SET `mil_atk`=?, `mil_def`=?, `mil_cov`=?, `mil_anti`=?, `up`= ?, `income`=?, `mil_total`=?, `overall`=? WHERE uid=? LIMIT 1";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("iiiiiiiii", $users[$data->uid]["atk"], $users[$data->uid]["def"], $users[$data->uid]["cov"], $users[$data->uid]["anti"], $users[$data->uid]["up"], $users[$data->uid]["inc"], $counter, $users[$data->uid]["overall"], $data->uid);
 			echo $query."<br>";
-			$this->query($query);
+			$stmt->execute();
 			$counter++;
 		}
 		
 		return true;
 	}
 	
-	function delOld()
+	public function delOld(): void
 	{
 		/*Deletes Old Users*/
 		$thrdays = time() - (30 * 24 * 60 * 60);
@@ -1786,44 +1907,65 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 		
 		$query  = "SELECT users.lastLogin,users.uid FROM users";
 		$q = $this->query($query);
-		while($data = mysql_fetch_object($q))
+		while($data = $q->fetch_object())
 		{
 		if ($data->lastLogin == $old)
 			{
-				$query = "DELETE FROM users WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM bank WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM planets WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM power WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM rank WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM technology WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM units WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM userdata WHERE uid=$data->uid";
-				$this->query($query);
-				$query = "DELETE FROM weapons WHERE uid=$data->uid";
-				$this->query($query);
+				$query = "DELETE FROM users WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM bank WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM planets WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM power WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM rank WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM technology WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM units WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM userdata WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
+				$query = "DELETE FROM weapons WHERE uid=?";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $data->uid);
+				$stmt->execute();
 				
 			}
 		}
 	}
 	
-	function viewTech()
+	public function viewTech(): object
 	{
-		$query="SELECT unitProd,uppl,income,attack,auSteal,auEffect,auRes,defense,duSteal,duEffect,duRes,covert,cuEffect,cuRes,anticovert,acuEffect,acuRes,galaxy,pDef,puCap,pmCap, ascend ,  cov_lvl, anti_lvl, SUM(attack+duSteal+auEffect+auRes+defense+duSteal+duEffect+duRes+covert+cuEffect+cuRes+anticovert+acuEffect+acuRes+pDef+1) AS ttl FROM `technology` WHERE `uid`=".$_SESSION['userid']." GROUP BY uid";
-		$q = $this->query($query);
-		$data = mysql_fetch_object($q);
+		$query="SELECT unitProd,uppl,income,attack,auSteal,auEffect,auRes,defense,duSteal,duEffect,duRes,covert,cuEffect,cuRes,anticovert,acuEffect,acuRes,galaxy,pDef,puCap,pmCap, ascend ,  cov_lvl, anti_lvl, SUM(attack+duSteal+auEffect+auRes+defense+duSteal+duEffect+duRes+covert+cuEffect+cuRes+anticovert+acuEffect+acuRes+pDef+1) AS ttl FROM `technology` WHERE `uid`=? GROUP BY uid";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$data = $q->fetch_object();
 		return $data;
 	}
 	
 	/*I have the next to functions to stop people from tampering with the form data.*/
 	/*Its Salts the field then md5 encrypts it like tha passwords.*/
-	function fieldtocrypt()
+	public function fieldtocrypt(): array
 	{
 		$data = $this->fields;
 		$counter=0;
@@ -1835,7 +1977,7 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 		return $data;
 	}
 	
-	function crypttofield($crypt)
+	public function crypttofield(string $crypt): ?string
 	{
 		$data = $this->fields;
 		$counter = 0;
@@ -1850,20 +1992,23 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 			}
 
 		}
-		return false;
+		return null;
 	}
 	/*End of Field Crypt Functions*/
 	
-	function buytech($crypt,$quanity=1)
+	public function buytech(string $crypt, int $quanity=1): void
 	{
 		if(!$type = $this->crypttofield($crypt))
 		{
 			echo "Error With Crypt $crypt <br>";
 			exit;
 		}
-		$query = "SELECT bank.onHand,bank.inBank,puCap,pmCap,unitProd,uppl,income,galaxy,anti_lvl,cov_lvl,ascend , SUM(attack+duSteal+auEffect+auRes+defense+duSteal+duEffect+duRes+covert+cuEffect+cuRes+anticovert+acuEffect+acuRes+pDef+1) AS ttl FROM `technology`,`bank` WHERE bank.`uid`=".$_SESSION['userid']." AND technology.uid=bank.uid GROUP BY bank.uid LIMIT 1";
-		$techQ = $this->query($query);
-		$tech = mysql_fetch_object($techQ);
+		$query = "SELECT bank.onHand,bank.inBank,puCap,pmCap,unitProd,uppl,income,galaxy,anti_lvl,cov_lvl,ascend , SUM(attack+duSteal+auEffect+auRes+defense+duSteal+duEffect+duRes+covert+cuEffect+cuRes+anticovert+acuEffect+acuRes+pDef+1) AS ttl FROM `technology`,`bank` WHERE bank.`uid`=? AND technology.uid=bank.uid GROUP BY bank.uid LIMIT 1";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$techQ = $stmt->get_result();
+		$tech = $techQ->fetch_object();
 		$data = $this->level($tech->ascend);
 		$data["z"] = $data["y"]*$tech->ttl;
 		$money = (number_format($tech->onHand,0,'','') + number_format($tech->inBank,0,'',''));
@@ -1914,25 +2059,34 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 				$max = $data["x"];
 				break;
 		}
-		$selectQ = "SELECT `$type` FROM `technology` WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-		$select = $this->query($selectQ);
-		$sel = mysql_fetch_row($select);
+		$selectQ = "SELECT `$type` FROM `technology` WHERE `uid`=? LIMIT 1";
+		$stmt = $this->db_link->prepare($selectQ);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$select = $stmt->get_result();
+		$sel = $select->fetch_row();
 		if ($quanity <= 0) { exit; }
 		if ($quanity+$sel[0] <= $max)
 		{
 			if (number_format($cost,0,'','') <= number_format($money,0,'',''))
 			{
-				$query = "UPDATE `technology` SET `$type`=`$type`+$quanity WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-				if($this->query($query))
+				$query = "UPDATE `technology` SET `$type`=`$type`+$quanity WHERE `uid`=? LIMIT 1";
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $_SESSION['userid']);
+				if($stmt->execute())
 				{
 					if($tech->onHand>=$cost)
 					{
-						$query = "UPDATE `bank` SET `onHand`=`onHand`-$cost WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-						if(!$this->query($query)){ echo "SQL Error Check Debug <font> $query</font>"; exit; }
+						$query = "UPDATE `bank` SET `onHand`=`onHand`-? WHERE `uid`=? LIMIT 1";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("ii", $cost, $_SESSION['userid']);
+						if(!$stmt->execute()){ echo "SQL Error Check Debug <font> $query</font>"; exit; }
 					}else{
 						$left = $cost - $tech->onHand;
-						$query = "UPDATE `bank` SET `onHand`=0 AND `inBank`=`inBank`-$left WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-						if(!$this->query($query)){ echo "SQL Error Check Debug<br><font> $query</font>"; exit; }
+						$query = "UPDATE `bank` SET `onHand`=0 AND `inBank`=`inBank`-? WHERE `uid`=? LIMIT 1";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("ii", $left, $_SESSION['userid']);
+						if(!$stmt->execute()){ echo "SQL Error Check Debug<br><font> $query</font>"; exit; }
 					}
 					echo "You Spent (".number_format($cost).") on $type Technology<br>";
 				}else{ echo "SQL Error Check Debug<font> $query</font>"; exit; }
@@ -1944,7 +2098,7 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 		}
 	} 
 	
-	function level($type)
+	public function level(int $type): array
 	{
 		switch ($type){
 			case '0':
@@ -1993,32 +2147,44 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 		return $data;
 	}
 	
-	function sendMessage($toUID,$subject="None",$message)
+	public function sendMessage(int $toUID, string $subject="None", string $message): bool
 	{
 		$gameTime 	= date("F jS H:i:s");
 		$query = "INSERT INTO `messages` ( `fromUID` , `toUID` , `isDeleted` , `timeSent` ,`subject`, `message` )
-					VALUES ( '".$_SESSION['userid']."', '$toUID', '0', ".$this->clean_sql($gameTime).", '$subject','$message')";
-		if($this->query($query)) { return true; } else { return false; }
+					VALUES ( ?, ?, '0', ?, ?, ?)";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iisss", $_SESSION['userid'], $toUID, $gameTime, $subject, $message);
+		if($stmt->execute()) { return true; } else { return false; }
 	}
 	
-	function create_allliance($UID,$name,$desc,$forumadd, $isclosed)
+	public function create_allliance(int $UID, string $name, string $desc, string $forumadd, int $isclosed): bool
 	{
 		if($name==''){
 	echo "Invalid Alliance Name";
 	return false;
 	}else{
-	$q="SELECT * FROM `alliances` WHERE `allyname` = '$name'";
-	$v=mysql_query($q);
-	$rcount=mysql_num_rows($v);
+	$q="SELECT * FROM `alliances` WHERE `allyname` = ?";
+	$stmt = $this->db_link->prepare($q);
+	$stmt->bind_param("s", $name);
+	$stmt->execute();
+	$v = $stmt->get_result();
+	$rcount = $v->num_rows;
 	if($rcount==0){
-	$q="INSERT INTO `alliances` (`allyid`,`allyname`,`desc`,`forumadd`,`isclosed`,`allybank`,`founder`) VALUES ('','$name','$desc','$forumadd','$isclosed','0','".$UID."')";
-	mysql_query($q);
+	$q="INSERT INTO `alliances` (`allyid`,`allyname`,`desc`,`forumadd`,`isclosed`,`allybank`,`founder`) VALUES ('', ?, ?, ?, ?, '0', ?)";
+	$stmt = $this->db_link->prepare($q);
+	$stmt->bind_param("sssis", $name, $desc, $forumadd, $isclosed, $UID);
+	$stmt->execute();
 	//now to bring it around to the user
-	$q="SELECT * FROM `alliances` WHERE `allyname` = '$name'";
-	$v=mysql_query($q);
-	$c=mysql_fetch_array($v);
-	$q="UPDATE `users` SET `allyid` = '".$c['allyid']."', `arank` = '2' WHERE `uid` = '".$UID."'";
-	mysql_query($q);
+	$q="SELECT * FROM `alliances` WHERE `allyname` = ?";
+	$stmt = $this->db_link->prepare($q);
+	$stmt->bind_param("s", $name);
+	$stmt->execute();
+	$v = $stmt->get_result();
+	$c = $v->fetch_array();
+	$q="UPDATE `users` SET `allyid` = ?, `arank` = '2' WHERE `uid` = ?";
+	$stmt = $this->db_link->prepare($q);
+	$stmt->bind_param("ii", $c['allyid'], $UID);
+	$stmt->execute();
 	echo "alliance Created";
 	return true;
 	}else{
@@ -2028,28 +2194,35 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 		
 	}
 	}
-	function viewMessages()
+	public function viewMessages(): mysqli_result
 	{
-		$query = "SELECT messages.`mid`, messages.fromUID, users.uname as user, messages.subject, messages.message, messages.timeSent FROM messages,users WHERE messages.toUID =".$_SESSION['userid']." AND users.uid = messages.fromUID";
-		$q = $this->query($query);
+		$query = "SELECT messages.`mid`, messages.fromUID, users.uname as user, messages.subject, messages.message, messages.timeSent FROM messages,users WHERE messages.toUID =? AND users.uid = messages.fromUID";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("i", $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
 		return $q;
 	}
 	
-	function deleteMessage($mid)
+	public function deleteMessage($mid): bool
 	{
 		if ($mid == "all") { 
-			$query = "DELETE FROM messages WHERE toUID=".$_SESSION['userid'];
+			$query = "DELETE FROM messages WHERE toUID=?";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("i", $_SESSION['userid']);
 		}elseif(is_numeric($mid)){
-			$query = "DELETE FROM messages WHERE `mid`=$mid AND toUID=".$_SESSION['userid'];
+			$query = "DELETE FROM messages WHERE `mid`=? AND toUID=?";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("ii", $mid, $_SESSION['userid']);
 		}
-		if($this->query($query))
+		if($stmt->execute())
 		{
 			return true;
 		}
 		return false;
 	}
 	
-	function bank($type="view",$ammount=0)
+	public function bank(string $type="view", float $ammount=0): ?object
 	{
 		switch($type)
 		{
@@ -2066,10 +2239,13 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 							LEFT OUTER JOIN `users` users_1 ON userdata.cid = users_1.uid
 							LEFT OUTER JOIN `planetsize` ON planets.plnt_size = planetsize.size
 							LEFT OUTER JOIN `technology` ON userdata.uid = technology.uid
-							WHERE bank.uid =".$_SESSION['userid']."
+							WHERE bank.uid =?
 							GROUP BY bank.uid";
-				$q = $this->query($query);
-				$data = mysql_fetch_object($q);
+				$stmt = $this->db_link->prepare($query);
+				$stmt->bind_param("i", $_SESSION['userid']);
+				$stmt->execute();
+				$q = $stmt->get_result();
+				$data = $q->fetch_object();
 				$data->left = abs($data->cap - $data->inBank);
 				return $data;
 				break;
@@ -2081,8 +2257,10 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 					{
 						$ammount = abs(number_format($data->left,0,'',''));
 					}					
-						$query = "UPDATE `bank` SET `inbank`=(`inbank`+(".number_format($ammount,0,'','')."*.95)) , `onHand`=(`onHand`-".number_format($ammount,0,'','').") WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-					if(!$this->query($query))
+						$query = "UPDATE `bank` SET `inbank`=(`inbank`+(?*.95)) , `onHand`=(`onHand`-?) WHERE `uid`=? LIMIT 1";
+					$stmt = $this->db_link->prepare($query);
+					$stmt->bind_param("dii", $ammount, $ammount, $_SESSION['userid']);
+					if(!$stmt->execute())
 					{ echo $query; } else { echo "Deposited: ".number_format($ammount); }
 				}
 				break;
@@ -2094,23 +2272,28 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 					{
 						$ammount = number_format($data->inBank,0,'','');
 					}					
-					$query = "UPDATE `bank` SET `inbank`=(`inbank`-(".number_format($ammount,0,'','').")) , `onHand`=(`onHand`+".number_format($ammount,0,'','').") WHERE `uid`=".$_SESSION['userid']." LIMIT 1";
-					if(!$this->query($query))
+					$query = "UPDATE `bank` SET `inbank`=(`inbank`-(?)) , `onHand`=(`onHand`+?) WHERE `uid`=? LIMIT 1";
+					$stmt = $this->db_link->prepare($query);
+					$stmt->bind_param("dii", $ammount, $ammount, $_SESSION['userid']);
+					if(!$stmt->execute())
 					{ echo $query; } else { echo "Withdrew: ".number_format($ammount); }
 					return null;
 				}
 		}
 	}
 	
-	function spy($uid,$turns=0)
+	public function spy(int $uid, int $turns=0): ?int
 	{
 		if($turns==0) { echo "No Turns Used. Contact Admin"; exit; }
 		$time 	= date("F j H:i:s");
 		$this->updatePower($_SESSION['userid']);
 		$this->updatePower($uid);
-		$query = "SELECT (units.superCovert + units.covert) as units, (mil_cov + mil_anti) AS fromCovert, (SELECT (mil_cov + mil_anti) FROM power WHERE uid =".$uid." ) AS toCovert FROM power,units WHERE units.uid =".$_SESSION['userid']." AND power.uid =".$_SESSION['userid'];
-		$q = $this->query($query);
-		$pwr = mysql_fetch_object($q);
+		$query = "SELECT (units.superCovert + units.covert) as units, (mil_cov + mil_anti) AS fromCovert, (SELECT (mil_cov + mil_anti) FROM power WHERE uid =? ) AS toCovert FROM power,units WHERE units.uid =? AND power.uid =?";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("iii", $uid, $_SESSION['userid'], $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$pwr = $q->fetch_object();
 		$query = "SELECT 
 					userdata.actionTurns,
 					technology.cov_lvl AS covertLVL,
@@ -2145,10 +2328,13 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 					SUM( units.attack+ units.superAttack+ units.attackMercs+ units.defense+ units.superDefense+ units.defenseMercs+ units.untrained+ units.miners+ units.lifers+ units.covert+ units.superCovert+ units.anticovert+ units.superAnticovert ) AS ttlarmysize,
 					((units.miners *(80+technology.income)) + ( units.lifers *(80+technology.income) ) + ( SUM( planets.income_bonus ) ) + (race.income_bonus*((units.miners *(80+technology.income))) + ( units.lifers *(80+technology.income)))) AS income,
 					((technology.unitProd*(3+technology.uppl))+SUM( planets.up_bonus )+(race.up_bonus*(technology.unitProd*(3+technology.uppl)))) AS up
-					FROM `userdata` INNER JOIN `units` ON userdata.uid = units.uid INNER JOIN `unitnames` ON userdata.rid = unitnames.rid INNER JOIN `power` ON userdata.uid = power.uid INNER JOIN `technology` ON userdata.uid = technology.uid INNER JOIN `planets` ON userdata.uid = planets.uid INNER JOIN `race` ON userdata.rid = race.rid WHERE userdata.uid = ".$uid." GROUP BY userdata.uid LIMIT 1";
-					if($q = $this->query($query))
+					FROM `userdata` INNER JOIN `units` ON userdata.uid = units.uid INNER JOIN `unitnames` ON userdata.rid = unitnames.rid INNER JOIN `power` ON userdata.uid = power.uid INNER JOIN `technology` ON userdata.uid = technology.uid INNER JOIN `planets` ON userdata.uid = planets.uid INNER JOIN `race` ON userdata.rid = race.rid WHERE userdata.uid = ? GROUP BY userdata.uid LIMIT 1";
+					$stmt = $this->db_link->prepare($query);
+					$stmt->bind_param("i", $uid);
+					if($stmt->execute())
 					{
-						$data = mysql_fetch_object($q);
+						$q = $stmt->get_result();
+						$data = $q->fetch_object();
 						$ttl = $data->minerCount+$data->liferCount; 
 						switch($pwr->fromCovert){
 							case ($pwr->fromCovert >= 5*$pwr->toCovert):
@@ -2180,7 +2366,7 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 								$perc = 0;
 								break;
 						}
-						$array = array($data->attackName,$data->attackCount,$data->superAttackName,$data->superAttackCount,$data->attackMercName,$data->attackMercCount,$data->defenseName,$data->defenseCount,$data->superDefenseName,$data->superDefenseCount,$data->defenseMercName,$data->defenseMercCount,$data->uuCount,$ttl,$data->liferCount,$data->covertName,$data->covertCount,$data->superCovertName,$data->superCovertCount,$data->anticovertName,$data->anticovertCount,$data->superAnticovertName,$data->superAnticovertCount,$data->ttlarmysize,$data->milStrike,$data->milDefense,$data->milCovert,$data->milAnti,$data->covertLVL,$data->antiLVL,$data->actionTurns,$data->up,$data->income);
+						$array = [$data->attackName,$data->attackCount,$data->superAttackName,$data->superAttackCount,$data->attackMercName,$data->attackMercCount,$data->defenseName,$data->defenseCount,$data->superDefenseName,$data->superDefenseCount,$data->defenseMercName,$data->defenseMercCount,$data->uuCount,$ttl,$data->liferCount,$data->covertName,$data->covertCount,$data->superCovertName,$data->superCovertCount,$data->anticovertName,$data->anticovertCount,$data->superAnticovertName,$data->superAnticovertCount,$data->ttlarmysize,$data->milStrike,$data->milDefense,$data->milCovert,$data->milAnti,$data->covertLVL,$data->antiLVL,$data->actionTurns,$data->up,$data->income];
 												
 						$xyz = 20 * (1-$perc);
 						for($x = 0; $x < count($array); $x++)
@@ -2226,25 +2412,34 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 							
 						}
 						if ($suc == 0) { 
-							$query = "INSERT INTO `actionlog` (`uid`,`to_uid`,`time`,`type`,`atkSent`,`success`,`phrase`) VALUES (".$this->clean_sql($_SESSION['userid']).",".$this->clean_sql($uid).",".$this->clean_sql($time).", 'spy', ".$this->clean_sql($pwr->units).",".$this->clean_sql($suc).",'Covert Operation')";
-							$this->query($query);
-							$query = "UPDATE `units` SET `covert` = (`covert`) , `superCovert`=(`superCovert`) WHERE uid = ".$_SESSION['userid'];
-							$this->query($query);
-							$query = "SELECT `actID` FROM `actionlog` WHERE uid=".$_SESSION['userid']." AND to_uid=$uid AND `time`=".$this->clean_sql($time);
-							$q = $this->query($query);
-							$qa = mysql_fetch_object($q);
+							$query = "INSERT INTO `actionlog` (`uid`,`to_uid`,`time`,`type`,`atkSent`,`success`,`phrase`) VALUES (?, ?, ?, 'spy', ?, ?, 'Covert Operation')";
+							$stmt = $this->db_link->prepare($query);
+							$stmt->bind_param("iisis", $_SESSION['userid'], $uid, $time, $pwr->units, $suc);
+							$stmt->execute();
+							$query = "UPDATE `units` SET `covert` = (`covert`) , `superCovert`=(`superCovert`) WHERE uid = ?";
+							$stmt = $this->db_link->prepare($query);
+							$stmt->bind_param("i", $_SESSION['userid']);
+							$stmt->execute();
+							$query = "SELECT `actID` FROM `actionlog` WHERE uid=? AND to_uid=? AND `time`=?";
+							$stmt = $this->db_link->prepare($query);
+							$stmt->bind_param("iis", $_SESSION['userid'], $uid, $time);
+							$stmt->execute();
+							$q = $stmt->get_result();
+							$qa = $q->fetch_object();
 							return $qa->actID;
 						} 
 						
 						$query = "INSERT INTO `actionlog` (`uid`,`to_uid`,`time`,`type`,`atkSent`,`atkWeaponStatus`,`success`,`phrase`) VALUES 
-									(".$this->clean_sql($_SESSION['userid']).",".$this->clean_sql($uid).",".$this->clean_sql($time).", 'spy', 
-									".$this->clean_sql($pwr->units).",".$this->clean_sql(implode(',',$arrayFinal)).",".$this->clean_sql($suc).",'Covert Operation')";
-
-						$this->query($query);
-						$query = "SELECT `actID` FROM `actionlog` WHERE uid=".$_SESSION['userid']." AND to_uid=$uid AND `time`=".$this->clean_sql($time);
-				
-						$q = $this->query($query);
-						$qa = mysql_fetch_object($q);
+									(?, ?, ?, 'spy', ?, ?, ?, 'Covert Operation')";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("iissss", $_SESSION['userid'], $uid, $time, $pwr->units, implode(',',$arrayFinal), $suc);
+						$stmt->execute();
+						$query = "SELECT `actID` FROM `actionlog` WHERE uid=? AND to_uid=? AND `time`=?";
+						$stmt = $this->db_link->prepare($query);
+						$stmt->bind_param("iis", $_SESSION['userid'], $uid, $time);
+						$stmt->execute();
+						$q = $stmt->get_result();
+						$qa = $q->fetch_object();
 						return $qa->actID;
 					}
 					echo "Broken Contact Admin";
@@ -2288,20 +2483,26 @@ INNER JOIN userdata ON technology.uid = userdata.uid
 		return $q;
 	}*/
 	
-	function sabotage($uid, $turns = 0) 
+	public function sabotage(int $uid, int $turns = 0): void 
 	{
 		if($turns == 0){ echo "no Turns Used<br>"; exit; }
-		$query = "SELECT (Select `mil_cov` FROM `power` WHERE `uid`=$uid LIMIT 1) AS toCov, `mil_cov` AS fromCov, `actionTurns` FROM userdata,power WHERE userdata.`uid` =".$_SESSION['userid']." AND power.uid = userdata.uid ";
-		$q = $this->query($query);
-		$data = mysql_fetch_object($q);
+		$query = "SELECT (Select `mil_cov` FROM `power` WHERE `uid`=? LIMIT 1) AS toCov, `mil_cov` AS fromCov, `actionTurns` FROM userdata,power WHERE userdata.`uid` =? AND power.uid = userdata.uid ";
+		$stmt = $this->db_link->prepare($query);
+		$stmt->bind_param("ii", $uid, $_SESSION['userid']);
+		$stmt->execute();
+		$q = $stmt->get_result();
+		$data = $q->fetch_object();
 		$fromCov = $data->fromCov;
 		$toCov = $data->toCov;
 		if ($turns > $data->actionTurns) { echo "You do not have that many turns<br>"; }
 		if ($fromCov > $toCov) { 
 			echo "Your Men Destroyed weapons and live to sabotage another day<br>"; 
-			$query = "SELECT `covert`,`superCovert`,(SELECT `covert` FROM units WHERE `uid`=$uid) as enemy_cov,(SELECT `superCovert` as enemy_superCovert FROM units WHERE `uid`=$uid) as enemy_superCovert FROM units WHERE uid=".$_SESSION['userid'];
-			$q = $this->query($query);
-			$data2 = mysql_fetch_object($q);
+			$query = "SELECT `covert`,`superCovert`,(SELECT `covert` FROM units WHERE `uid`=?) as enemy_cov,(SELECT `superCovert` as enemy_superCovert FROM units WHERE `uid`=?) as enemy_superCovert FROM units WHERE uid=?";
+			$stmt = $this->db_link->prepare($query);
+			$stmt->bind_param("iii", $uid, $uid, $_SESSION['userid']);
+			$stmt->execute();
+			$q = $stmt->get_result();
+			$data2 = $q->fetch_object();
 			$data3 = $this->getWeaponInventory($_SESSION['userid']);
 			print_r($data3);
 		} else { 

@@ -1,4 +1,4 @@
-<?
+<?php
 include_once("../config.php");
 
 $pagegen = new page_gen();
@@ -6,26 +6,32 @@ $pagegen->round_to = 4;
 $pagegen->start();
 
 $s = new Game();
-if (!$s->loggedIn || !$_GET['time']){ header("Location: https://realmbattles.org/SGWnew/index.php?"); }
+if (!$s->loggedIn || !$_GET['time']) {
+    header("Location: https://realmbattles.org/SGWnew/index.php?");
+    exit;
+}
 $s->updatePower($_SESSION['userid']);
 $base = $s->baseVars();
-if ($base->allyid != 0 ){
-$allyinfo = $s->getallyinfo($base->allyid);}
-$newsQ = mysql_query("SELECT * FROM news ORDER BY id DESC") or die(mysql_error());
+if ($base->allyid != 0) {
+    $allyinfo = $s->getallyinfo($base->allyid);
+}
+$newsQ = $s->query("SELECT * FROM news ORDER BY id DESC");
+
 ?>
 <table align="center" border="0" cellpadding="10" cellspacing="0" width="90%">
-<?
-while ($news = mysql_fetch_array($newsQ)) {
-$datenews = date('jS M y, G:i', ($news[news_time]+3600*$logged[cas_modif]));
-echo "<tr>
-<td class=\"news1\"><font color\"yellow\">".$news[news_naslov]." </font>(posted by <font color\"yellow\">".$news[user_name]."</font> at ".$datenews.")</td>
-</tr>
-<tr>
-<td class=\"news2\">".$news[news_text]."</td>
-</tr>
-<tr><td></td></tr>";
+<?php
+while ($news = $newsQ->fetch_array()) {
+    $datenews = date('jS M y, G:i', ($news['news_time'] + 3600 * $logged['cas_modif']));
+    echo "<tr>
+    <td class=\"news1\"><font color=\"yellow\">{$news['news_naslov']} </font>(posted by <font color=\"yellow\">{$news['user_name']}</font> at {$datenews})</td>
+    </tr>
+    <tr>
+    <td class=\"news2\">{$news['news_text']}</td>
+    </tr>
+    <tr><td></td></tr>";
 }
-echo "</table>";?>
+echo "</table>";
+?>
 <table width="100%" border="0">
   <tr>
     <td width="58%" align="center" valign="top"><table width="100%" border="0">
@@ -69,7 +75,7 @@ echo "</table>";?>
         <td colspan="2" align="left" valign="top">Defense and Covert Alert Level *TBC</td>
         </tr>
     </table><br /><table width="100%" border="0">
-	<?Debug::printMsg(__CLASS__, __FUNCTION__, "Start of alliance info");?>
+	<?php Debug::printMsg(__CLASS__, __FUNCTION__, "Start of alliance info"); ?>
   <tr>
     <td colspan="3" align="left">Alliance Management *TBC </td>
     </tr>
@@ -78,9 +84,9 @@ echo "</table>";?>
     </tr>
   <tr>
     <td width="12%" align="left">Alliance: </td>
-    <td width="38%" align="left"><?if ($base->allyid == 0 ){echo "None</td>";} else { ?><a href="javascript:void(0)" onclick="sendData('ally_mlist','get','<?= $base->allyid; ?>'); return false"><?= $allyinfo->allyname ?></a></td><?}?>
-   <?if ($base->allyid == 0 ){?><td width="50%" align="left"><a href="javascript:void(0)" onclick="sendData('c_ally','get','<?= $base->uid; ?>'); return false;">Creat Alliance </a></td><?}else{?>
-	<td width="50%" align="left"><input type="submit" name='allyenter' value='Enter Alliance' onclick="this.value='What ever...'; this.disabled=true; sendData('ally_mlist','get','<?=$base->allyid; ?>');" /></td><?}?>
+    <td width="38%" align="left"><?php if ($base->allyid == 0 ){echo "None</td>";} else { ?><a href="javascript:void(0)" onclick="sendData('ally_mlist','get','<?= $base->allyid; ?>'); return false"><?= $allyinfo->allyname ?></a></td><?php } ?>
+   <?php if ($base->allyid == 0 ){?><td width="50%" align="left"><a href="javascript:void(0)" onclick="sendData('c_ally','get','<?= $base->uid; ?>'); return false;">Creat Alliance </a></td><?php }else{?>
+	<td width="50%" align="left"><input type="submit" name='allyenter' value='Enter Alliance' onclick="this.value='What ever...'; this.disabled=true; sendData('ally_mlist','get','<?=$base->allyid; ?>');" /></td><?php } ?>
   </tr>
 </table><br /><table width="100%" border="0">
   <tr>
@@ -97,7 +103,7 @@ echo "</table>";?>
   <td align="left">Race</td>
   <td align="left">Rank</td>
   </tr>
-  <?
+  <?php
   $offi = $s->getOfficers($_SESSION['userid']);
   for($x=0; $x<count($offi); $x++)
   {
@@ -109,8 +115,8 @@ echo "</table>";?>
       echo "<tr> <td colspan='5'>Number of Officers: ".count($offi)."</td> </tr>"
   ?>
 </table></td>
-    <td width="42%" align="center" valign="top"><? include_once('mil_rank.php'); ?><br />
-      <? include_once('./personnel.php'); ?></td>
+    <td width="42%" align="center" valign="top"><?php include_once('mil_rank.php'); ?><br />
+      <?php include_once('./personnel.php'); ?></td>
   </tr>
   <tr>
     <td colspan="2" align="center" valign="middle"><table width="58%" border="0">
@@ -127,8 +133,8 @@ echo "</table>";?>
   </tr>
 </table>
 
-<?
+<?php
 $pagegen->stop();
-echo "Query Count: ".$s->queryCount."<br>";
+echo "Query Count: " . $s->queryCount . "<br>";
 print('page generation time: ' . $pagegen->gen());
 ?>

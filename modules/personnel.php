@@ -1,8 +1,7 @@
-<?
+<?php
 include_once("../config.php");
 $s = new Game();
 $personnel = $s->getPersonnel($_SESSION['userid']);
-
 ?>
 <table width="100%" border="0">
         <tr>
@@ -38,7 +37,7 @@ $personnel = $s->getPersonnel($_SESSION['userid']);
         </tr>
         <tr>
           <td align="left">Miners (Lifers) </td>
-          <td align="right" valign="middle"><? $x = $personnel->minerCount+$personnel->liferCount; print number_format($x); ?>( <?= number_format($personnel->liferCount); ?> )</td>
+          <td align="right" valign="middle"><?php $x = $personnel->minerCount + $personnel->liferCount; print number_format($x); ?>( <?= number_format($personnel->liferCount); ?> )</td>
         </tr>
         <tr>
           <td align="left"><?= $personnel->covertName; ?></td>
@@ -60,4 +59,4 @@ $personnel = $s->getPersonnel($_SESSION['userid']);
           <td>Total</td>
           <td align="right" valign="middle"><?= number_format($personnel->ttlarmysize); ?></td>
         </tr>
-      </table>      
+      </table>

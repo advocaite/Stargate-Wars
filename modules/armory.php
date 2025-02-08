@@ -1,4 +1,4 @@
-<?
+<?php
 include_once("../config.php");
 
 $pagegen = new page_gen();

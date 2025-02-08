@@ -1,13 +1,12 @@
-<?
+<?php
 include_once("../config.php");
 $pagegen = new page_gen();
 $pagegen->round_to = 4;
 $pagegen->start();
 $s = new Game();
 
-if($_GET['id'] == "deposit" || $_GET['id'] == "withdrawl")
-{
-	$s->bank($_GET['id'],$_GET['atype']);
+if ($_GET['id'] === "deposit" || $_GET['id'] === "withdrawl") {
+    $s->bank($_GET['id'], (float)$_GET['atype']);
 }
 $data = $s->bank();
 ?>
@@ -24,24 +23,24 @@ Your Bank Account:<br /><br />
     <td><?= number_format($data->onHand); ?></td>
     <td><?= number_format($data->inBank); ?></td>
     <td><?= number_format($data->cap); ?></td>
-    <td><? if($data->left < 0) { echo "0"; } else { echo number_format($data->left); } ?></td>
+    <td><?php if ($data->left < 0) { echo "0"; } else { echo number_format($data->left); } ?></td>
   </tr>
   <tr>
     <td>Put Naquadah into Account:</td>
-    <td align="left">ammount: <input id="deposit" name="deposit" type='text' value="<?= number_format($data->onHand,0,'',''); ?>" size="10" /></td>
+    <td align="left">amount: <input id="deposit" name="deposit" type='text' value="<?= number_format($data->onHand, 0, '', ''); ?>" size="10" /></td>
     <td colspan="2" align="left" valign="top"><input type="submit" name="giveThis" value="Deposit" onClick="this.disabled=true; this.value='Depositing'; sendData('bank','get','deposit',deposit.value);" /></td>
   </tr>
   <tr>
     <td>Take Naquadah out of Account:</td>
-    <td align="left">ammount:
+    <td align="left">amount:
     <input id="withdrawl" name="withdrawl" type='text' value="0" size="10" /></td>
-    <td colspan="2" align="left" valign="top"><input type="submit" name="takeThis" value="Withdrawl" onClick="this.disabled=true; this.value='Depositing'; sendData('bank','get','withdrawl',withdrawl.value);" /></td>
+    <td colspan="2" align="left" valign="top"><input type="submit" name="takeThis" value="Withdraw" onClick="this.disabled=true; this.value='Withdrawing'; sendData('bank','get','withdrawl',withdrawl.value);" /></td>
   </tr>
 </table>
 </form>
 <br /><br />
-<?
-echo "Query Count: ".$s->queryCount."<br>";
+<?php
+echo "Query Count: " . $s->queryCount . "<br>";
 $pagegen->stop();
 print('page generation time: ' . $pagegen->gen());
 ?>
