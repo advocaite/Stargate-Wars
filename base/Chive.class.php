@@ -108,11 +108,6 @@ class Chive
     {
         if(!$this->connected()) $this->connectToDB();
         
-        // Stripslashes
-        if (get_magic_quotes_gpc())
-        {
-            $string = stripslashes($string);
-        }
         // Quote if not integer
         if (!is_numeric($string) && $quotes)
         {

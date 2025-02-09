@@ -1,8 +1,8 @@
 <?php
 include_once("config.php");
 $s = new Game();
-if ($_GET['logout']) { User::logOut();} 
-if($_POST['submit']=="Login")
+if (isset($_GET['logout']) && $_GET['logout']) { User::logOut();} 
+if (isset($_POST['submit']) && $_POST['submit'] == "Login")
 {
         $s = new User($_POST['user'], $_POST['pass']);
 }
@@ -46,7 +46,7 @@ if(!$s->loggedIn || $_GET['logout'])
       </tr>
     </table>    </td>
     <td colspan="3" align="center"><h1>Codename: Lantea</h1><h2><div id="rollover"></div></h2><?php
-	if ($_POST['submit']=="Register")
+	if (isset($_POST['submit']) && $_POST['submit']=="Register")
 {
 	$number = $_POST['number'];
 	if(md5($number) != $_SESSION['image_value'])

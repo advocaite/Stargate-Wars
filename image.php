@@ -1,4 +1,4 @@
-<?
+<?php
 include("config.php");
 $s = new Game();
 //this function is called recursivelly
@@ -30,8 +30,27 @@ $letter3=substr($rand_str,2,1);
 $letter4=substr($rand_str,3,1);
 $letter5=substr($rand_str,4,1);
 
-//Creates an image from a png file. If you want to use gif or jpg images, just use the coresponding functions: imagecreatefromjpeg and imagecreatefromgif.
-$image=imagecreatefrompng("images/noise.png");
+// Check if the image file exists
+$imagePath = "images/noise.png";
+if (file_exists($imagePath)) {
+    //Creates an image from a png file. If you want to use gif or jpg images, just use the coresponding functions: imagecreatefromjpeg and imagecreatefromgif.
+    $image = imagecreatefrompng($imagePath);
+} else {
+    // Create a blank image with noise
+    $width = 150;
+    $height = 50;
+    $image = imagecreatetruecolor($width, $height);
+    $backgroundColor = imagecolorallocate($image, 255, 255, 255); // white background
+    imagefill($image, 0, 0, $backgroundColor);
+
+    // Add random noise
+    for ($i = 0; $i < 1000; $i++) {
+        $x = rand(0, $width - 1);
+        $y = rand(0, $height - 1);
+        $color = imagecolorallocate($image, rand(0, 255), rand(0, 255), rand(0, 255));
+        imagesetpixel($image, $x, $y, $color);
+    }
+}
 
 //Get a random angle for each letter to be rotated with.
 $angle1 = rand(-20, 20);
@@ -67,7 +86,7 @@ $textColor1 = imagecolorallocate ($image, $colors[$color1][0],$colors[$color1][1
 $textColor2 = imagecolorallocate ($image, $colors[$color2][0],$colors[$color2][1], $colors[$color2][2]);
 $textColor3 = imagecolorallocate ($image, $colors[$color3][0],$colors[$color3][1], $colors[$color3][2]);
 $textColor4 = imagecolorallocate ($image, $colors[$color4][0],$colors[$color4][1], $colors[$color4][2]);
-$textColor4 = imagecolorallocate ($image, $colors[$color5][0],$colors[$color5][1], $colors[$color5][2]);
+$textColor5 = imagecolorallocate ($image, $colors[$color5][0],$colors[$color5][1], $colors[$color5][2]);
 $size = 20;
 imagettftext($image, $size, $angle1, 10, $size+15, $textColor1, $font1, $letter1);
 imagettftext($image, $size, $angle2, 35, $size+15, $textColor2, $font2, $letter2);

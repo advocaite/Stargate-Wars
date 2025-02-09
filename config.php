@@ -11,8 +11,8 @@ $subs['{HEAD_STUFF}'] = "";								# Stuff to put in <head>(left blank intention
 
 // Database Information
 $conf['db_server'] = "localhost";						# IP or hostname of DB server(usually localhost)
-$conf['db_name']  = "";						# Name of DB within the server
-$conf['db_username']  = "";							# Username for DB
+$conf['db_name']  = "sgw";						# Name of DB within the server
+$conf['db_username']  = "root";							# Username for DB
 $conf['db_password']  = "";						# Password for DB
 $conf['db_prefix'] = "";							# Prefix for DB tables
 // Set Error Reporting
