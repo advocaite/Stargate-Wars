@@ -2,7 +2,7 @@
 // Base::Debug.class.php
 class Debug
 {
-	function printMsg(string $className, string $function, string $message): void
+	static function printMsg(string $className, string $function, string $message): void
 	{
 		if(DEBUG)
 		{
