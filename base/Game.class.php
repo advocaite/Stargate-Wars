@@ -132,7 +132,7 @@ class Game extends User
 		return $ranks;
 	}
 	
-	public function getPersonnel(int $uid): object
+	public function getPersonnel(int $uid): ?object
 	{
 		$query = "SELECT 
 					units.attack 		AS attackCount, 
@@ -172,8 +172,12 @@ class Game extends User
 		$stmt->bind_param("i", $uid);
 		$stmt->execute();
 		$q = $stmt->get_result();
-		$person = $q->fetch_object();
-		return $person;
+		if ($q->num_rows > 0) {
+			$person = $q->fetch_object();
+			return $person;
+		} else {
+			return null;
+		}
 	}
 	
 	public function getOfficers(int $uid): array
@@ -339,17 +343,17 @@ class Game extends User
 	}
 	public function getallyinfo(int $allyid): object
 	{
-	Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving  alliance info");
-		$query = "SELECT *
+	Debug::printMsg(__CLASS__, __FUNCTION__, "Retrieving alliance info");
+	$query = "SELECT *
 					FROM alliances
 					WHERE alliances.allyid = ? 
 					LIMIT 1";
-		$stmt = $this->db_link->prepare($query);
-		$stmt->bind_param("i", $allyid);
-		$stmt->execute();
-		$q = $stmt->get_result();
-		$ranks = $q->fetch_object();
-		return $ranks;
+	$stmt = $this->db_link->prepare($query);
+	$stmt->bind_param("i", $allyid);
+	$stmt->execute();
+	$q = $stmt->get_result();
+	$ranks = $q->fetch_object();
+	return $ranks ?? (object)[];
 	}
 	public function getUserInfo(int $uid): object
 	{
@@ -541,15 +545,15 @@ class Game extends User
 		/*Covert and Anticovert Calulations*/
 		$cSpys 		= (5*$comboObj->covert) + ( 10 * $comboObj->superCovert );
 		$aSpys 		= (5*$comboObj->anticovert) + ( 10 * $comboObj->superAnticovert );
-		$c_tBonus 	= $comboObj->covtech_lvl;
-		$a_tBonus	= $comboObj->antitech_lvl;
+		$c_tBonus 	= $comboObj->cov_lvl ?? 0;
+		$a_tBonus	= $comboObj->anti_lvl ?? 0;
 		$c_pBonus	= 0;
 		while ($pBonObj=$pBonus->fetch_object()) 
 		{ 
-			$c_pBonus += $pBonObj->cov_bonus; 
+			$c_pBonus += $pBonObj->cov_bonus ?? 0; 
 		}
 		
-		$c_rBonus 	= $comboObj->cov_bonus;
+		$c_rBonus 	= $comboObj->cov_bonus ?? 0;
 	
 
 		$covert 	= round((((( sqrt( pow(2,$comboObj->cov_lvl) ) * $cSpys * (1+$c_tBonus) * (1+$c_rBonus) ) + $cSpys ) * 10 )+ $c_pBonus)*(float)(1+($comboObj->techcovert/10)));
@@ -751,8 +755,8 @@ class Game extends User
 	
 		/*Query Database for Race Bonus*/
 	
-		$attackpower += ($comboObj->atk_bonus*$attackpower);	
-		$defensepower += ($comboObj->def_bonus*$defensepower);	
+		$attackpower += ($comboObj->atk_bonus ?? 0) * $attackpower;	
+		$defensepower += ($comboObj->def_bonus ?? 0) * $defensepower;	
 	
 		$query = "UPDATE `power` SET `mil_atk` = ?,`mil_def` = ?,`mil_cov` = ?,`mil_anti` = ? WHERE `uid` =? LIMIT 1";
 		$stmt = $this->db_link->prepare($query);

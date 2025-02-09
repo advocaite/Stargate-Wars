@@ -21,7 +21,7 @@ $newsQ = $s->query("SELECT * FROM news ORDER BY id DESC");
 <table align="center" border="0" cellpadding="10" cellspacing="0" width="90%">
 <?php
 while ($news = $newsQ->fetch_array()) {
-    $datenews = date('jS M y, G:i', ($news['news_time'] + 3600 * $logged['cas_modif']));
+    $datenews = date('jS M y, G:i', ($news['news_time'] + 3600 ));
     echo "<tr>
     <td class=\"news1\"><font color=\"yellow\">{$news['news_naslov']} </font>(posted by <font color=\"yellow\">{$news['user_name']}</font> at {$datenews})</td>
     </tr>

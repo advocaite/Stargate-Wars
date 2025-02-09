@@ -20,6 +20,7 @@ class User extends Chive
 	public function __construct(string $userName = "", string $password = "DoodleCakes and Rofl Sundae4278vsid")
 	{
 		parent::__construct();
+		$this->connectToDB(); // Ensure the database connection is established
 		if(isset($userName) && !empty($userName) || isset($_SESSION['username']))
 		{
 			if(isset($_SESSION['username']) && isset($_SESSION['password']))

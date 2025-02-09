@@ -7,7 +7,7 @@ if (isset($_POST['submit']) && $_POST['submit'] == "Login")
         $s = new User($_POST['user'], $_POST['pass']);
 }
 
-if(!$s->loggedIn || $_GET['logout'])
+if(!$s->loggedIn || (isset($_GET['logout']) && $_GET['logout']))
 {
 
 ?>

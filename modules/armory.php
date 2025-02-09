@@ -56,21 +56,22 @@ if($_REQUEST['atype'] == "sellweps")
 	$query = "DELETE FROM `weapons` WHERE `uid` =".$_SESSION['userid']." AND `wid`=".$wid." AND `quanity` = '0' LIMIT 1";
 	mysql_query($query);
 	}
-
-
-
 }
 
-if($_POST['submit2']!="Submit")
+if(isset($_POST['submit2']) && $_POST['submit2'] != "Submit")
 {
 	$posted = array();
-	for ($x = 0; $x < count($weapons['atk']); $x++)
-	{
-		$posted[$weapons['atk'][$x]['fieldname']] = $_POST[$weapons['atk'][$x]['fieldname']];
+	if (isset($weapons['atk'])) {
+		for ($x = 0; $x < count($weapons['atk']); $x++)
+		{
+			$posted[$weapons['atk'][$x]['fieldname']] = $_POST[$weapons['atk'][$x]['fieldname']];
+		}
 	}
-	for ($x = 0; $x < count($weapons['def']); $x++)
-	{
-		$posted[$weapons['def'][$x]['fieldname']] = $_POST[$weapons['def'][$x]['fieldname']];
+	if (isset($weapons['def'])) {
+		for ($x = 0; $x < count($weapons['def']); $x++)
+		{
+			$posted[$weapons['def'][$x]['fieldname']] = $_POST[$weapons['def'][$x]['fieldname']];
+		}
 	}
 	$s->buyWeapons($posted);
 	$s->updatePower($_SESSION['userid']);
@@ -90,15 +91,15 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="13%" align="center" valign="middle">Repair</td>
         <td width="22%" align="center" valign="middle">Scrap /Sell </td>
       </tr>
-      <? for ($x = 0; $x < count($inv['atk']); $x++){?>
+      <?php if (isset($inv['atk'])) { for ($x = 0; $x < count($inv['atk']); $x++){?>
 	  <tr>
-        <td align="left" valign="middle"><?= $inv['atk'][$x]['name'];?></td>
-        <td align="center" valign="middle"><?= $inv['atk'][$x]['quanity'];?></td>
-		<td align="center" valign="middle"><?= $inv['atk'][$x]['strength']."/".$inv['atk'][$x]['power'];?></td>
-        <td align="center" valign="middle"><a href="javascript:void(0)" onclick="sendData('armory','get','<?= $inv['atk'][$x]['wid'];?>','repair'); return false;"><?= $inv['atk'][$x]['perpoint'];?></a></td>
-        <td align="center" valign="middle"><input name="<?= $inv['atk'][$x]['fieldname'];?>" id="<?= $inv['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /><a href="javascript:void(0)" onclick="sendData('armory', return false;"> for <?= $inv['atk'][$x]['sell'];?> each</a></td>        <td colspan="4" align="right" valign="bottom"><input type="submit" name="buyweaps" value="for <?= $inv['atk'][$x]['sell'];?> each" onclick="this.value='Selling Weapons...'; this.disabled=true; sendData('armory','post',<?= $inv['atk'][$x]['fieldname'];?>.value,'sellweps','<?= $inv['atk'][$x]['wid'];?>')"/>
+        <td align="left" valign="middle"><?php echo $inv['atk'][$x]['name'];?></td>
+        <td align="center" valign="middle"><?php echo $inv['atk'][$x]['quanity'];?></td>
+		<td align="center" valign="middle"><?php echo $inv['atk'][$x]['strength']."/".$inv['atk'][$x]['power'];?></td>
+        <td align="center" valign="middle"><a href="javascript:void(0)" onclick="sendData('armory','get','<?php echo $inv['atk'][$x]['wid'];?>','repair'); return false;"><?php echo $inv['atk'][$x]['perpoint'];?></a></td>
+        <td align="center" valign="middle"><input name="<?php echo $inv['atk'][$x]['fieldname'];?>" id="<?php echo $inv['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /><a href="javascript:void(0)" onclick="sendData('armory', return false;"> for <?php echo $inv['atk'][$x]['sell'];?> each</a></td>        <td colspan="4" align="right" valign="bottom"><input type="submit" name="buyweaps" value="for <?php echo $inv['atk'][$x]['sell'];?> each" onclick="this.value='Selling Weapons...'; this.disabled=true; sendData('armory','post',<?php echo $inv['atk'][$x]['fieldname'];?>.value,'sellweps','<?php echo $inv['atk'][$x]['wid'];?>')"/>
       </tr>
-	  <? } ?>
+	  <?php }} ?>
 	  <tr><td>&nbsp;</td></tr>
       <tr>
         <td align="left" valign="middle">Defense Weapons</td>
@@ -107,20 +108,20 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td align="center" valign="middle">Repair</td>
         <td align="center" valign="middle">Scrap /Sell </td>
       </tr>
-      <? for ($x = 0; $x < count($inv['def']); $x++){?>
+      <?php if (isset($inv['def'])) { for ($x = 0; $x < count($inv['def']); $x++){?>
 	  <tr>
-        <td align="left" valign="middle"><?= $inv['def'][$x]['name'];?></td>
-        <td align="center" valign="middle"><?= $inv['def'][$x]['quanity'];?></td>
-		<td align="center" valign="middle"><?= $inv['def'][$x]['strength']."/".$inv['def'][$x]['power']; ?></td>
-        <td align="center" valign="middle"><a href="javascript:void(0)" onclick="sendData('armory','get','<?= $inv['def'][$x]['wid'];?>','repair'); return false;"><?= $inv['def'][$x]['perpoint'];?></a></td>
-        <td align="center" valign="middle"><input name="<?= $inv['def'][$x]['fieldname'];?>" id="<?= $inv['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /><a href="javascript:void(0)" onclick="sendData('armory','get',<?= $inv['def'][$x]['fieldname'];?>.value,'sellweps','<?= $inv['def'][$x]['wid'];?>');"> for <?= $inv['def'][$x]['sell'];?> each</a></td>
+        <td align="left" valign="middle"><?php echo $inv['def'][$x]['name'];?></td>
+        <td align="center" valign="middle"><?php echo $inv['def'][$x]['quanity'];?></td>
+		<td align="center" valign="middle"><?php echo $inv['def'][$x]['strength']."/".$inv['def'][$x]['power']; ?></td>
+        <td align="center" valign="middle"><a href="javascript:void(0)" onclick="sendData('armory','get','<?php echo $inv['def'][$x]['wid'];?>','repair'); return false;"><?php echo $inv['def'][$x]['perpoint'];?></a></td>
+        <td align="center" valign="middle"><input name="<?php echo $inv['def'][$x]['fieldname'];?>" id="<?php echo $inv['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /><a href="javascript:void(0)" onclick="sendData('armory','get',<?php echo $inv['def'][$x]['fieldname'];?>.value,'sellweps','<?php echo $inv['def'][$x]['wid'];?>');"> for <?php echo $inv['def'][$x]['sell'];?> each</a></td>
       </tr>
-	  <? } ?>
+	  <?php }} ?>
 	  <tr><td>&nbsp;</td></tr>
     </table></td>
   </tr>
   <tr>
-    <td width="37%" align="left" valign="top"><? include_once('mil_rank.php'); echo "<br>"; include_once('personnel.php'); ?>
+    <td width="37%" align="left" valign="top"><?php include_once('mil_rank.php'); echo "<br>"; include_once('personnel.php'); ?>
     <br /></td>
     <td width="63%" align="right" valign="top"><form action="javascript:void(0)"><table width="90%" border="0">
       <tr>
@@ -132,40 +133,42 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right">Cost</td>
         <td width="16%" align="right">Quanity</td>
       </tr>
-          <?
+          <?php
+	  if (isset($weapons['atk'])) {
 	  for ($x = 0; $x < count($weapons['atk']); $x++)
 	  {
 	  	if($weapons['atk'][$x]['unitcost'] ==0 && !$weapons['atk'][$x]['cashcost'] ==0)
 		{
 	    ?>
 	  <tr>
-        <td width="26%" align="left" valign="top"><?= $weapons['atk'][$x]['name'];?></td>
-        <td width="18%" align="right" valign="top"><?= $weapons['atk'][$x]['power'];?></td>
-        <td width="40%" align="right" valign="top"><?= $weapons['atk'][$x]['cashcost'];?> naquadrea</td>
-        <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
+        <td width="26%" align="left" valign="top"><?php echo $weapons['atk'][$x]['name'];?></td>
+        <td width="18%" align="right" valign="top"><?php echo $weapons['atk'][$x]['power'];?></td>
+        <td width="40%" align="right" valign="top"><?php echo $weapons['atk'][$x]['cashcost'];?> naquadrea</td>
+        <td width="16%" align="right" valign="bottom"><input name="<?php echo $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-        <?
+        <?php
 	  	}elseif ($weapons['atk'][$x]['cashcost'] ==0 && !$weapons['atk'][$x]['unitcost'] ==0 ){
 	    ?>
 	  <tr>
-        <td width="26%" align="left" valign="top"><?= $weapons['atk'][$x]['name'];?></td>
-        <td width="18%" align="right" valign="top"><?= $weapons['atk'][$x]['power'];?></td>
-        <td width="40%" align="right" valign="top"><?= $weapons['atk'][$x]['unitcost'];?> untrained units</td>
-        <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
+        <td width="26%" align="left" valign="top"><?php echo $weapons['atk'][$x]['name'];?></td>
+        <td width="18%" align="right" valign="top"><?php echo $weapons['atk'][$x]['power'];?></td>
+        <td width="40%" align="right" valign="top"><?php echo $weapons['atk'][$x]['unitcost'];?> untrained units</td>
+        <td width="16%" align="right" valign="bottom"><input name="<?php echo $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  	<?
+	  	<?php
 		}else if(!$weapons['atk'][$x]['cashcost'] ==0 && (!$weapons['atk'][$x]['unitcost'] ==0)){		
 		?>
 	  <tr>
-        <td width="26%" align="left" valign="top"><?= $weapons['atk'][$x]['name'];?></td>
-        <td width="18%" align="right" valign="top"><?= $weapons['atk'][$x]['power'];?></td>
-        <td width="40%" align="right" valign="top"><?= $weapons['atk'][$x]['cashcost'];?> naquadrea and<br /> 
-          <?= $weapons['atk'][$x]['unitcost'];?> untrained units</td>
-        <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
+        <td width="26%" align="left" valign="top"><?php echo $weapons['atk'][$x]['name'];?></td>
+        <td width="18%" align="right" valign="top"><?php echo $weapons['atk'][$x]['power'];?></td>
+        <td width="40%" align="right" valign="top"><?php echo $weapons['atk'][$x]['cashcost'];?> naquadrea and<br /> 
+          <?php echo $weapons['atk'][$x]['unitcost'];?> untrained units</td>
+        <td width="16%" align="right" valign="bottom"><input name="<?php echo $weapons['atk'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  <?
+	  <?php
 	  }
 	 }
+	  }
 	  ?><tr><td>&nbsp;</td></tr>
 	  <tr>
         <td width="26%" align="left" valign="top">Defense Weapons </td>
@@ -173,49 +176,51 @@ $inv = $s->getWeaponInventory($_SESSION['userid']);
         <td width="40%" align="right">Cost</td>
         <td width="16%" align="right" valign="bottom">Quanity</td>
       </tr>
-          <?
+          <?php
+	  if (isset($weapons['def'])) {
 	  for ($x = 0; $x < count($weapons['def']); $x++)
 	  {
 	  	if($weapons['def'][$x]['unitcost'] ==0  && !$weapons['def'][$x]['cashcost'] ==0 )
 		{
 	    ?>
 	  <tr>
-        <td width="26%" align="left" valign="top"><?= $weapons['def'][$x]['name'];?></td>
-        <td width="18%" align="right" valign="top"><?= $weapons['def'][$x]['power'];?></td>
-        <td width="40%" align="right" valign="top"><?= $weapons['def'][$x]['cashcost'];?> naquadrea</td>
-        <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
+        <td width="26%" align="left" valign="top"><?php echo $weapons['def'][$x]['name'];?></td>
+        <td width="18%" align="right" valign="top"><?php echo $weapons['def'][$x]['power'];?></td>
+        <td width="40%" align="right" valign="top"><?php echo $weapons['def'][$x]['cashcost'];?> naquadrea</td>
+        <td width="16%" align="right" valign="bottom"><input name="<?php echo $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-        <?
+        <?php
 	  	}elseif ($weapons['def'][$x]['cashcost'] ==0 && !$weapons['def'][$x]['unitcost'] ==0  ){
 	    ?>
 	  <tr>
-        <td width="26%" align="left" valign="top"><?= $weapons['def'][$x]['name'];?></td>
-        <td width="18%" align="right" valign="top"><?= $weapons['def'][$x]['power'];?></td>
-        <td width="40%" align="right" valign="top"><?= $weapons['def'][$x]['unitcost'];?> untrained units</td>
-        <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
+        <td width="26%" align="left" valign="top"><?php echo $weapons['def'][$x]['name'];?></td>
+        <td width="18%" align="right" valign="top"><?php echo $weapons['def'][$x]['power'];?></td>
+        <td width="40%" align="right" valign="top"><?php echo $weapons['def'][$x]['unitcost'];?> untrained units</td>
+        <td width="16%" align="right" valign="bottom"><input name="<?php echo $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  	<?
+	  	<?php
 		}else if(!$weapons['def'][$x]['cashcost'] ==0 && (!$weapons['def'][$x]['unitcost'] ==0)){		
 		?>
 	  <tr>
-        <td width="26%" align="left" valign="top"><?= $weapons['def'][$x]['name'];?></td>
-        <td width="18%" align="right" valign="top"><?= $weapons['def'][$x]['power'];?></td>
-        <td width="40%" align="right" valign="top"><?= $weapons['def'][$x]['cashcost'];?> naquadrea and <br />
-          <?= $weapons['def'][$x]['unitcost'];?> untrained units</td>
-        <td width="16%" align="right" valign="bottom"><input name="<?= $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
+        <td width="26%" align="left" valign="top"><?php echo $weapons['def'][$x]['name'];?></td>
+        <td width="18%" align="right" valign="top"><?php echo $weapons['def'][$x]['power'];?></td>
+        <td width="40%" align="right" valign="top"><?php echo $weapons['def'][$x]['cashcost'];?> naquadrea and <br />
+          <?php echo $weapons['def'][$x]['unitcost'];?> untrained units</td>
+        <td width="16%" align="right" valign="bottom"><input name="<?php echo $weapons['def'][$x]['fieldname'];?>" type="text" value="0" size="10" /></td>
       </tr>
-	  <?
+	  <?php
 	  }
 	 }
+	  }
 	  ?>
 	  <tr><td>&nbsp;</td></tr>
       <tr>
-        <td colspan="4" align="right" valign="bottom"><input type="submit" name="buyweaps" value="Submit" onclick="this.value='Buying Weapons...'; this.disabled=true; sendData('armory','post','<?= $s->uid;?>')"/></td>
+        <td colspan="4" align="right" valign="bottom"><input type="submit" name="buyweaps" value="Submit" onclick="this.value='Buying Weapons...'; this.disabled=true; sendData('armory','post','<?php echo $s->uid;?>')"/></td>
         </tr>
     </table
 
 ></table>
-<?
+<?php
 echo "Query Count: ".$s->queryCount."<br>";
 $pagegen->stop();
 print('page generation time: ' . $pagegen->gen());
